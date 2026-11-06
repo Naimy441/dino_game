@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#f7f7f7" />
+    <meta name="description" content="Dino Dash: a chunky-pixel 3D endless runner. Start in a grey desert, hit 200 and the world explodes into colour." />
+    <title>Dino Dash</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Cpath fill='%23535353' d='M8 1h6v4h-3v1h2v1h-3v3H9v2H8v2H6v-2H5v2H3v-3H2V8H1V5h1v2h2V6h1V5h3z'/%3E%3Crect x='9' y='2' width='1' height='1' fill='%23fff'/%3E%3C/svg%3E" />
+    <style>
+      html, body { margin: 0; height: 100%; background: #f7f7f7; overflow: hidden; }
+      body.loading #app > :not(#loader) { display: none !important; }
+      #loader { position: fixed; inset: 0; display: none; place-items: center; color: #535353; font: 700 16px/1.6 monospace; text-align: center; padding: 16px; }
+      body.loading #loader { display: grid; }
+      body.boot-failed #loader-msg { color: #c62828; }
+    </style>
+  </head>
+  <body class="loading">
+    <div id="app">
+      <div id="loader" role="status" aria-live="polite"><div><p>DINO DASH</p><p id="loader-msg">Loading…</p><noscript><p>Dino Dash needs JavaScript and WebGL.</p></noscript></div></div>
+      <canvas id="scene" aria-label="Game view"></canvas>
+
+      <div id="hud" class="hidden">
+        <div class="hud-tl">
+          <div id="hud-world" class="world"><span id="hud-world-n">1/12</span> <b id="hud-world-name">CLASSIC DESERT</b></div>
+          <div class="chips">
+            <button id="btn-cam" class="chip" title="Switch camera (C)"><span id="hud-cam">2.5D</span> <kbd>C</kbd></button>
+            <button id="btn-mute" class="chip" title="Sound (M)"><span id="hud-mute">SOUND</span> <kbd>M</kbd></button>
+            <button id="btn-pause" class="chip" title="Pause (P / Esc)">II</button>
+          </div>
+        </div>
+        <div class="hud-tr">
+          <div class="score"><span class="hi">HI <span id="hud-hi">00000</span></span> <span id="hud-score">00000</span></div>
+          <div id="hud-lap" class="lap hidden"></div>
+        </div>
+        <div id="hud-hint" class="hint hidden"></div>
+        <div id="hud-meter" class="meter hidden"><span id="hud-meter-label">FIRE</span><div class="bar"><i id="hud-meter-fill"></i></div></div>
+        <div id="hud-pop" class="pops"></div>
+        <div id="fps" class="fps hidden">60 FPS</div>
+      </div>
+
+      <div id="card" class="card hidden"><div id="card-n" class="card-n"></div><div id="card-name" class="card-name"></div><div id="card-hint" class="card-hint"></div></div>
+
+      <div id="screen-start" class="screen">
+        <div class="panel">
+          <h1 class="logo"><span>DINO</span><span>DASH</span></h1>
+          <p class="tag">A CHUNKY-PIXEL 3D RUNNER. HIT 200 AND THE WORLD EXPLODES INTO COLOUR.</p>
+          <button id="btn-play" class="big">PRESS SPACE TO RUN</button>
+          <div class="opts">
+            <div class="opt"><span>START IN</span><div class="picker"><button id="world-prev" aria-label="Previous world">&lt;</button><b id="world-pick">CLASSIC DESERT</b><button id="world-next" aria-label="Next world">&gt;</button></div></div>
+            <div class="opt"><span>CAMERA</span><button id="opt-cam" class="opt-btn">2.5D</button></div>
+            <div class="opt"><span>PIXELS</span><button id="opt-pix" class="opt-btn">BIG</button></div>
+            <div class="opt"><span>SOUND</span><button id="opt-mute" class="opt-btn">ON</button></div>
+          </div>
+          <div class="keys">
+            <div><kbd>SPACE</kbd>/<kbd>UP</kbd> JUMP</div><div><kbd>DN</kbd> DUCK / SLAM</div><div><kbd>X</kbd>/<kbd>F</kbd> FIRE · PICKAXE</div>
+            <div><kbd>&lt;</kbd><kbd>&gt;</kbd> LANES</div><div><kbd>C</kbd> CAMERA</div><div><kbd>V</kbd> PIXEL SIZE</div>
+          </div>
+          <p class="best">BEST <b id="menu-best">0</b></p>
+        </div>
+      </div>
+
+      <div id="screen-over" class="screen hidden">
+        <div class="panel slim">
+          <div class="over">G A M E &nbsp; O V E R</div>
+          <button id="btn-retry" class="retry" aria-label="Retry">
+            <svg viewBox="0 0 12 11" shape-rendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M2 0h8v1h1v2h1v5h-1v2h-1v1H2v-1H1V8H0V5h3v3h1v1h4V8h1V3H8V2H4v1H3v1h2v1H0V1h1V0h1z"/></svg>
+          </button>
+          <p id="over-score" class="over-score"></p>
+          <p class="sub">SPACE TO RETRY · ESC FOR MENU</p>
+        </div>
+      </div>
+
+      <div id="screen-pause" class="screen hidden">
+        <div class="panel slim"><div class="over">PAUSED</div><p class="sub">P TO RESUME · ESC FOR MENU</p></div>
+      </div>
+
+      <div id="touch" class="touch hidden">
+        <button id="t-duck" class="tb left">DUCK</button>
+        <button id="t-left" class="tb lane l hidden">&lt;</button>
+        <button id="t-right" class="tb lane r hidden">&gt;</button>
+        <button id="t-act" class="tb act hidden">FIRE</button>
+        <button id="t-jump" class="tb right">JUMP</button>
+      </div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
