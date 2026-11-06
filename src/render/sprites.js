@@ -152,6 +152,21 @@ export const BIRD_DOWN = [
   '.yyyy...',
   '..yy....',
 ];
+// Birds seen head-on (the across-the-track half of the 3D model).
+export const BIRD_FRONT_UP = [
+  'b........b',
+  'bb......bb',
+  '.bbbyybbb.',
+  '....yy....',
+  '....yy....',
+];
+export const BIRD_FRONT_DOWN = [
+  '....yy....',
+  '....yy....',
+  '.bbbyybbb.',
+  'bb......bb',
+  'b........b',
+];
 export const FLOWER = ['.p.', 'pyp', '.p.', '.g.', '.g.'];
 
 // ---------------------------------------------------------------- volcano

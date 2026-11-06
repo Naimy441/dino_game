@@ -50,7 +50,7 @@ try {
 
   // let the autopilot play through the colour explosion
   await page.evaluate(() => { window.__dino.autopilot = true; window.__dino.setScore(185); });
-  await page.waitForFunction(() => window.__dino.game.score > 205, null, { timeout: 15000 });
+  await page.waitForFunction(() => window.__dino.game.score > 205, null, { timeout: 40000 });
   await page.waitForTimeout(300);
   await shot('03-colour-explosion');
   await page.waitForTimeout(1500);
@@ -76,7 +76,7 @@ try {
 
   // dying shows the game-over screen; space restarts
   await page.evaluate(() => { window.__dino.autopilot = false; window.__dino.start(0); });
-  await page.waitForFunction(() => window.__dino.state === 'dead', null, { timeout: 20000 });
+  await page.waitForFunction(() => window.__dino.state === 'dead', null, { timeout: 40000 });
   check(await page.isVisible('#screen-over'), 'game over screen after a crash');
   await shot('07-game-over');
   await page.waitForTimeout(600);

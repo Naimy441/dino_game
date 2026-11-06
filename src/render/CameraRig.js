@@ -72,7 +72,7 @@ export class CameraRig {
     // first person: eyes, a touch above the snout
     const eye = (d.ducking ? 0.95 : 1.78) * scale;
     const y = flip ? d.y - eye : d.y + eye;
-    P.set(0.55 * scale, y, d.z);
+    P.set(0.9 * scale, y, d.z);
     L.set(16, flip ? y - 0.4 : y - 0.35, d.z);
     return 78;
   }

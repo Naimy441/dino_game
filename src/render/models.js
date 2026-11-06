@@ -19,16 +19,40 @@ export const DINO_COLORS = {
   color: { '#': '#ff8a2a', e: '#ffffff', a: '#e0661a', l: '#d95f14' },
 };
 
+// The body is built as rounded tubes (each column as thick as it is tall), so
+// it reads as a solid creature from behind and in first person, not a cut-out.
+// Arms ('a') sit on both sides of the chest; the eye ('e') is only on the
+// surface, on both sides of the head.
+function dinoBody(rows, p) {
+  const v = new VoxelSet();
+  v.sprite(rows, p, { round: 0.42, maxHalf: 4, surface: { e: '#' }, skip: 'a' });
+  const { halfOf, W } = v.halves;
+  const H = rows.length;
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      if (rows[y][x] !== 'a') continue;
+      // the nearest body column to the left decides how wide the chest is
+      let h = 2;
+      for (let k = x - 1; k >= 0; k--) {
+        if (halfOf[y * W + k]) {
+          h = halfOf[y * W + k];
+          break;
+        }
+      }
+      const yy = H - 1 - y;
+      for (const z of [h - 2, h - 1, -h, -h + 1]) v.set(x, yy, z, p.a);
+    }
+  }
+  return v;
+}
+
 export function dinoParts(look) {
   return memo(`dino-${look}`, () => {
     const p = DINO_COLORS[look];
-    const body = new VoxelSet().sprite(S.DINO_BODY, p, { inflate: 1.6, maxHalf: 4 });
-    // a dark pupil behind the eye pixel and a belly stripe for depth
-    const duck = new VoxelSet().sprite(S.DINO_DUCK, p, { inflate: 1.6, maxHalf: 4 });
     const leg = new VoxelSet().sprite(S.DINO_LEG, { '#': p.l }, { inflate: 0, depth: 1 });
     return {
-      body: body.build(0.1, { centerX: false }),
-      duck: duck.build(0.1, { centerX: false }),
+      body: dinoBody(S.DINO_BODY, p).build(0.1, { centerX: false }),
+      duck: dinoBody(S.DINO_DUCK, p).build(0.1, { centerX: false }),
       leg: leg.build(0.1, { centerX: false, anchor: 'top' }),
     };
   });
@@ -36,28 +60,28 @@ export function dinoParts(look) {
 
 // ---------------------------------------------------------------- obstacles
 const P = {
-  cactusSmall: [S.CACTUS_SMALL, { '#': MONO }],
-  cactusTall: [S.CACTUS_TALL, { '#': MONO }],
-  bat: [[S.BAT_UP, S.BAT_DOWN], { '#': MONO }],
+  cactusSmall: [S.CACTUS_SMALL, { '#': MONO }, { cross: true }],
+  cactusTall: [S.CACTUS_TALL, { '#': MONO }, { cross: true }],
+  bat: [[S.BAT_UP, S.BAT_DOWN], { '#': MONO }, { cross: true }],
   stump: [S.STUMP, { r: '#c9a27a', t: '#6d4c41' }],
   mushroom: [S.MUSHROOM, { r: '#e53935', w: '#fff4e0' }],
   logStack: [S.LOG_STACK, { r: '#c9a27a', t: '#6d4c41' }],
-  bird: [[S.BIRD_UP, S.BIRD_DOWN], { y: '#ffca28', b: '#ef6c00' }],
+  bird: [[S.BIRD_UP, S.BIRD_DOWN], { y: '#ffca28', b: '#ef6c00' }, { cross: true, front: [S.BIRD_FRONT_UP, S.BIRD_FRONT_DOWN] }],
   lavaRock: [S.LAVA_ROCK, { r: '#3b2b2b', l: '#ff7b00' }],
-  obsidian: [S.OBSIDIAN, { o: '#2a1745', l: '#c060ff' }],
-  fireBat: [[S.BAT_UP, S.BAT_DOWN], { '#': '#ff5722' }],
+  obsidian: [S.OBSIDIAN, { o: '#2a1745', l: '#c060ff' }, { cross: true }],
+  fireBat: [[S.BAT_UP, S.BAT_DOWN], { '#': '#ff5722' }, { cross: true }],
   moonRock: [S.MOON_ROCK, { g: '#9a9a9a', w: '#d0d0d0', d: '#5c5c5c' }],
-  moonSpire: [S.MOON_SPIRE, { g: '#9a9a9a', w: '#d0d0d0', d: '#5c5c5c' }],
-  ufo: [S.UFO, { g: '#90a4ae', c: '#80deea', y: '#ffeb3b' }],
+  moonSpire: [S.MOON_SPIRE, { g: '#9a9a9a', w: '#d0d0d0', d: '#5c5c5c' }, { cross: true }],
+  ufo: [S.UFO, { g: '#90a4ae', c: '#80deea', y: '#ffeb3b' }, { cross: true, frontHalf: 4 }],
   zombie: [S.ZOMBIE, { g: '#5f9e4a', c: '#00a0a8', b: '#3b3bb5', k: '#111111' }, { inflate: 0, depth: 3 }],
-  blockBat: [[S.BAT_UP, S.BAT_DOWN], { '#': '#3a2a20' }, { inflate: 0, depth: 1 }],
-  coral: [S.CORAL, { p: '#ff6f91' }],
-  coralTall: [S.CORAL_TALL, { o: '#ff9800' }],
-  jelly: [S.JELLY, { p: '#e1a6f0', w: '#ffffff' }],
+  blockBat: [[S.BAT_UP, S.BAT_DOWN], { '#': '#3a2a20' }, { inflate: 0, depth: 1, cross: true }],
+  coral: [S.CORAL, { p: '#ff6f91' }, { cross: true }],
+  coralTall: [S.CORAL_TALL, { o: '#ff9800' }, { cross: true }],
+  jelly: [S.JELLY, { p: '#e1a6f0', w: '#ffffff' }, { cross: true, frontHalf: 3 }],
   shark: [S.SHARK, { g: '#78909c', w: '#eceff1', k: '#111111' }],
-  stalagmite: [S.STALAGMITE, { s: '#7d7385', d: '#4d4555' }],
-  stalactite: [S.STALACTITE, { s: '#7d7385', d: '#4d4555' }],
-  dropper: [S.STALACTITE, { s: '#8d8395', d: '#e05050' }],
+  stalagmite: [S.STALAGMITE, { s: '#7d7385', d: '#4d4555' }, { cross: true }],
+  stalactite: [S.STALACTITE, { s: '#7d7385', d: '#4d4555' }, { cross: true }],
+  dropper: [S.STALACTITE, { s: '#8d8395', d: '#e05050' }, { cross: true }],
   minecart: [S.MINECART, { b: '#6d4c41', g: '#ffd54f', k: '#222222' }],
   cans: [S.CANS, { r: '#e53935', w: '#eeeeee' }],
   wetSign: [S.WET_SIGN, { y: '#ffd600', k: '#222222' }],
@@ -65,16 +89,16 @@ const P = {
   saleSign: [S.SALE_SIGN, { r: '#e53935', w: '#ffffff', k: '#555555' }, { inflate: 0, depth: 1 }],
   gumdrop: [S.GUMDROP, { g: '#4dd06a', w: '#c8ffd0' }],
   cupcake: [S.CUPCAKE, { w: '#ffffff', p: '#ff4081', b: '#a1745a', r: '#e53935' }],
-  lollipop: [S.LOLLIPOP, { p: '#ff4081', w: '#ffffff' }],
+  lollipop: [S.LOLLIPOP, { p: '#ff4081', w: '#ffffff' }, { cross: true }],
   bee: [S.BEE, { y: '#ffeb3b', k: '#222222', w: '#e3f2fd' }],
   candy: [S.CANDY, { p: '#ff4081', w: '#ffffff' }],
   snowman: [S.SNOWMAN, { w: '#ffffff', k: '#222222', o: '#ff9800', r: '#e53935' }],
-  iceSpike: [S.ICE_SPIKE, { c: '#81d4fa', w: '#e1f5fe' }],
+  iceSpike: [S.ICE_SPIKE, { c: '#81d4fa', w: '#e1f5fe' }, { cross: true }],
   penguin: [S.PENGUIN, { k: '#212121', w: '#ffffff', o: '#ff9800' }],
-  snowBird: [[S.BIRD_UP, S.BIRD_DOWN], { y: '#ffffff', b: '#64b5f6' }],
+  snowBird: [[S.BIRD_UP, S.BIRD_DOWN], { y: '#ffffff', b: '#64b5f6' }, { cross: true, front: [S.BIRD_FRONT_UP, S.BIRD_FRONT_DOWN] }],
   neonCar: [S.NEON_CAR, { p: '#ff2bd6', c: '#00f0ff', y: '#ffe600', k: '#111111' }, { inflate: 0, depth: 6 }],
   barrier: [S.BARRIER, { y: '#ffe600', k: '#111111', c: '#00f0ff' }, { inflate: 0, depth: 7 }],
-  drone: [S.DRONE, { c: '#00f0ff', k: '#222222', p: '#ff2bd6' }],
+  drone: [S.DRONE, { c: '#00f0ff', k: '#222222', p: '#ff2bd6' }, { cross: true }],
   asteroid: [S.ASTEROID, { g: '#8d6e63', d: '#5d4037' }],
   asteroidCeil: [S.ASTEROID, { g: '#7e5f54', d: '#4e342e' }],
 };
@@ -112,7 +136,8 @@ export function obstacleModel(type) {
     const frames = Array.isArray(art[0]) ? art : [art];
     const size = spec.h / frames[0].length;
     return {
-      frames: frames.map((rows) => spriteGeo(rows, pal, size, { inflate: 1.5, maxHalf: 4, ...opts, anchor: 'bottom' })),
+      frames: frames.map((rows, i) =>
+        spriteGeo(rows, pal, size, { inflate: 1.5, maxHalf: 4, ...opts, front: Array.isArray(opts.front?.[0]) ? opts.front[i] : opts.front, anchor: 'bottom' })),
       glow: GLOW.has(type),
     };
   });
@@ -123,9 +148,9 @@ export const prop = {
   cloud: (c = '#dadada') => memo(`cloud${c}`, () => spriteGeo(S.CLOUD, { '#': c }, 0.25, { inflate: 0, depth: 1 })),
   dune: (c) => memo(`dune${c}`, () => spriteGeo(S.DUNE, { '#': c }, 0.5, { inflate: 0, depth: 1 })),
   pebble: (c) => memo(`peb${c}`, () => spriteGeo(S.PEBBLE, { '#': c }, 0.1, { inflate: 0, depth: 1 })),
-  cactus: (c) => memo(`pcact${c}`, () => spriteGeo(S.CACTUS_TALL, { '#': c }, 0.1, { inflate: 1.5 })),
-  pine: () => memo('pine', () => spriteGeo(S.PINE, { g: '#2e7d32', t: '#6d4c41' }, 0.35, { inflate: 1.2, maxHalf: 5 })),
-  pine2: () => memo('pine2', () => spriteGeo(S.PINE, { g: '#43a047', t: '#5d4037' }, 0.3, { inflate: 1.2, maxHalf: 5 })),
+  cactus: (c) => memo(`pcact${c}`, () => spriteGeo(S.CACTUS_TALL, { '#': c }, 0.1, { inflate: 1.5, cross: true })),
+  pine: () => memo('pine', () => spriteGeo(S.PINE, { g: '#2e7d32', t: '#6d4c41' }, 0.35, { inflate: 1.2, maxHalf: 5, cross: true, frontHalf: 5 })),
+  pine2: () => memo('pine2', () => spriteGeo(S.PINE, { g: '#43a047', t: '#5d4037' }, 0.3, { inflate: 1.2, maxHalf: 5, cross: true, frontHalf: 5 })),
   bush: () => memo('bush', () => spriteGeo(S.BUSH, { g: '#388e3c' }, 0.2, { inflate: 1.5 })),
   flower: (c) => memo(`fl${c}`, () => spriteGeo(S.FLOWER, { p: c, y: '#ffeb3b', g: '#2e7d32' }, 0.08, { inflate: 0, depth: 1 })),
   volcano: () => memo('volcano', () => spriteGeo(S.VOLCANO, { r: '#3a1f1a', l: '#ff6a00' }, 1.4, { inflate: 0.6, maxHalf: 6 })),
@@ -171,7 +196,7 @@ export const prop = {
   cane: () => memo('cane', () => spriteGeo(S.CANE, { r: '#e53935', w: '#ffffff' }, 0.45, { inflate: 0, depth: 1 })),
   bigLolly: (c) => memo(`blolly${c}`, () => spriteGeo(S.LOLLIPOP, { p: c, w: '#ffffff' }, 0.4, { inflate: 1 })),
   cottonCloud: (c) => memo(`cotton${c}`, () => spriteGeo(S.CLOUD, { '#': c }, 0.4, { inflate: 1.5, maxHalf: 3 })),
-  snowPine: () => memo('snowpine', () => spriteGeo(S.SNOW_PINE, { w: '#ffffff', g: '#2e6b4a', t: '#5d4037' }, 0.38, { inflate: 1.2, maxHalf: 5 })),
+  snowPine: () => memo('snowpine', () => spriteGeo(S.SNOW_PINE, { w: '#ffffff', g: '#2e6b4a', t: '#5d4037' }, 0.38, { inflate: 1.2, maxHalf: 5, cross: true, frontHalf: 5 })),
   igloo: () => memo('igloo', () => spriteGeo(S.IGLOO, { w: '#f0f8ff', k: '#5a7a95' }, 0.35, { inflate: 1.5, maxHalf: 4 })),
   mountain: (c, s) => memo(`mtn${c}${s}`, () => spriteGeo(S.VOLCANO, { r: c, l: s }, 2.2, { inflate: 0, depth: 1 })),
   neonPalm: () => memo('npalm', () => spriteGeo(S.NEON_PALM, { p: '#ff2bd6', c: '#00f0ff' }, 0.45, { inflate: 0, depth: 1 })),

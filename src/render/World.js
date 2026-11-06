@@ -172,7 +172,7 @@ export class World {
 
     this.hemi = new THREE.HemisphereLight('#fff', '#888', 1);
     this.sun = new THREE.DirectionalLight('#fff', 0.5);
-    this.sun.position.set(6, 14, 10);
+    this.sun.position.set(-5, 14, 9);
     scene.add(this.hemi, this.sun, this.sun.target);
     scene.fog = new THREE.Fog('#f7f7f7', 40, 150);
 

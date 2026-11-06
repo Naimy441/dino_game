@@ -629,6 +629,8 @@ function boot() {
     const speed = running && game.alive ? game.speed * timeScale : 0;
     const visDt = state === 'paused' ? 0 : dt;
     world.update(visDt * (state === 'dead' ? 0 : timeScale), state === 'dead' ? 0 : game.speed, game.distance, camera);
+    // hide the dino's own body once the camera is (nearly) inside its head
+    dino.setFirstPerson(rig.mode === 'first' && rig.blend > 0.6);
     dino.update(visDt, game, game.alive);
     obstacles.update(visDt * timeScale, game);
     // fire breath and other trails

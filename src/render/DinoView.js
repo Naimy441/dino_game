@@ -25,8 +25,8 @@ export class DinoView {
     this.legB = new THREE.Mesh(undefined, voxelMaterial());
     this.body.position.set(BODY_X, LEG_Y, 0);
     this.duck.position.set(BODY_X - 0.35, LEG_Y, 0);
-    this.legA.position.set(BODY_X + 0.45, LEG_Y, 0.16);
-    this.legB.position.set(BODY_X + 0.78, LEG_Y, -0.16);
+    this.legA.position.set(BODY_X + 0.45, LEG_Y, 0.22);
+    this.legB.position.set(BODY_X + 0.78, LEG_Y, -0.22);
     this.lift = new THREE.Group(); // raised when riding a cart/board
     this.lift.add(this.body, this.duck, this.legA, this.legB);
     this.pose.add(this.lift);
@@ -34,7 +34,7 @@ export class DinoView {
     // gear
     this.pickaxe = new THREE.Mesh(gear.pickaxe(), voxelMaterial());
     this.pickPivot = new THREE.Group();
-    this.pickPivot.position.set(0.3, 1.25, 0.32);
+    this.pickPivot.position.set(0.3, 1.25, 0.5);
     this.pickaxe.position.set(0, 0, 0);
     this.pickPivot.add(this.pickaxe);
     this.lift.add(this.pickPivot);

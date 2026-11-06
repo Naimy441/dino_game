@@ -40,45 +40,103 @@ export class VoxelSet {
   }
   // Pixel sprite into this set. Row 0 of the sprite is the top; the bottom
   // row lands on y = oy. Columns run along +x from ox.
-  sprite(rows, palette, { ox = 0, oy = 0, oz = 0, inflate = 2, depth = 1, maxHalf = 4 } = {}) {
-    const H = rows.length;
+  //   inflate  pixels far from the drawing's edge get thicker (rounded look)
+  //   round    instead, each column is a rounded tube as thick as it is tall
+  //            (used for the dino, so it has a real body from every side)
+  //   cross    also stamp the drawing (or `front`) across the track (in the
+  //            z/y plane), so arms and wings stick out toward every camera
+  //   surface  characters drawn only on the outer layer (eyes); inside they
+  //            use the given fill character
+  sprite(rows, palette, opts = {}) {
+    const { ox = 0, oy = 0, oz = 0, cross = false, front = null } = opts;
     const W = Math.max(...rows.map((r) => r.length));
-    const filled = (x, y) => y >= 0 && y < H && x >= 0 && x < W && rows[y][x] && rows[y][x] !== '.' && rows[y][x] !== ' ';
-    // distance to the nearest empty pixel (4-neighbourhood BFS)
-    const dist = new Array(W * H).fill(Infinity);
-    const q = [];
-    for (let y = 0; y < H; y++) {
-      for (let x = 0; x < W; x++) {
-        if (!filled(x, y)) continue;
-        if (!filled(x + 1, y) || !filled(x - 1, y) || !filled(x, y + 1) || !filled(x, y - 1)) {
-          dist[y * W + x] = 1;
-          q.push([x, y]);
-        }
-      }
-    }
-    for (let i = 0; i < q.length; i++) {
-      const [x, y] = q[i];
-      const d = dist[y * W + x] + 1;
-      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-        const nx = x + dx, ny = y + dy;
-        if (filled(nx, ny) && dist[ny * W + nx] > d) {
-          dist[ny * W + nx] = d;
-          q.push([nx, ny]);
-        }
-      }
-    }
-    for (let y = 0; y < H; y++) {
-      for (let x = 0; x < W; x++) {
-        if (!filled(x, y)) continue;
-        const ch = rows[y][x];
-        const col = palette[ch];
-        if (col === undefined) continue;
-        const half = inflate ? Math.min(maxHalf, Math.max(depth, Math.round(dist[y * W + x] * inflate * 0.5))) : depth;
-        const yy = oy + (H - 1 - y);
-        for (let z = -half; z < half; z++) this.set(ox + x, yy, oz + z, col);
-      }
+    const cx = cross ? Math.floor(W / 2) : 0;
+    this.plane(rows, palette, opts, (x, y, z, c) => this.set(ox + x - cx, oy + y, oz + z, c));
+    if (cross) {
+      const f = front || rows;
+      const fw = Math.max(...f.map((r) => r.length));
+      const fc = Math.floor(fw / 2);
+      const fopts = { ...opts, maxHalf: opts.frontHalf ?? Math.min(2, opts.maxHalf ?? 2) };
+      this.plane(f, opts.frontPalette || palette, fopts, (x, y, z, c) => {
+        if (!this.has(ox + z, oy + y, oz + x - fc)) this.set(ox + z, oy + y, oz + x - fc, c);
+      });
     }
     return this;
+  }
+
+  // Calls put(x, yUp, z, colour) for every voxel of one extruded drawing.
+  plane(rows, palette, { inflate = 2, depth = 1, maxHalf = 4, round = 0, surface = null, skip = '' } = {}, put) {
+    const H = rows.length;
+    const W = Math.max(...rows.map((r) => r.length));
+    const at = (x, y) => (y >= 0 && y < H && x >= 0 && x < W ? rows[y][x] || '.' : '.');
+    const filled = (x, y) => {
+      const ch = at(x, y);
+      return ch !== '.' && ch !== ' ' && !skip.includes(ch);
+    };
+    const halfOf = new Array(W * H).fill(0);
+    if (round) {
+      // vertical runs: each one becomes a rounded tube
+      for (let x = 0; x < W; x++) {
+        let y = 0;
+        while (y < H) {
+          if (!filled(x, y)) {
+            y++;
+            continue;
+          }
+          let e = y;
+          while (e < H && filled(x, e)) e++;
+          const L = e - y;
+          const hm = Math.max(2, Math.min(maxHalf, Math.round(L * round)));
+          const c = (y + e) / 2;
+          for (let k = y; k < e; k++) {
+            const t = (k + 0.5 - c) / (L / 2);
+            halfOf[k * W + x] = Math.max(1, Math.round(hm * Math.sqrt(Math.max(0, 1 - t * t * 0.85))));
+          }
+          y = e;
+        }
+      }
+    } else {
+      // distance to the nearest empty pixel (4-neighbourhood BFS)
+      const dist = new Array(W * H).fill(Infinity);
+      const q = [];
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          if (!filled(x, y)) continue;
+          if (!filled(x + 1, y) || !filled(x - 1, y) || !filled(x, y + 1) || !filled(x, y - 1)) {
+            dist[y * W + x] = 1;
+            q.push([x, y]);
+          }
+        }
+      }
+      for (let i = 0; i < q.length; i++) {
+        const [x, y] = q[i];
+        const d = dist[y * W + x] + 1;
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const nx = x + dx, ny = y + dy;
+          if (filled(nx, ny) && dist[ny * W + nx] > d) {
+            dist[ny * W + nx] = d;
+            q.push([nx, ny]);
+          }
+        }
+      }
+      for (let i = 0; i < W * H; i++) {
+        if (dist[i] === Infinity) continue;
+        halfOf[i] = inflate ? Math.min(maxHalf, Math.max(depth, Math.round(dist[i] * inflate * 0.5))) : depth;
+      }
+    }
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        if (!filled(x, y)) continue;
+        const ch = at(x, y);
+        const col = palette[ch];
+        if (col === undefined) continue;
+        const half = halfOf[y * W + x];
+        const inner = surface && surface[ch] ? palette[surface[ch]] : col;
+        const yy = H - 1 - y;
+        for (let z = -half; z < half; z++) put(x, yy, z, z === -half || z === half - 1 ? col : inner);
+      }
+    }
+    this.halves = { halfOf, W, H };
   }
   // Build a geometry. `size` is the edge of one voxel in world units; the
   // model is centred on x and z (unless anchor says otherwise) with its lowest
