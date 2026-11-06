@@ -62,7 +62,7 @@ export class Audio {
 
   ensure() {
     if (this.ctx) {
-      if (this.ctx.state === 'suspended') this.ctx.resume();
+      if (this.ctx.state !== 'running') this.ctx.resume().catch(() => {});
       return true;
     }
     const AC = window.AudioContext || window.webkitAudioContext;
@@ -72,12 +72,18 @@ export class Audio {
     this.master.gain.value = this.muted ? 0 : 0.5;
     this.master.connect(this.ctx.destination);
     this.musicBus = this.ctx.createGain();
-    this.musicBus.gain.value = 0.32;
+    this.musicBus.gain.value = 0.45;
     this.musicBus.connect(this.master);
     const len = this.ctx.sampleRate;
     this.noise = this.ctx.createBuffer(1, len, len);
     const d = this.noise.getChannelData(0);
     for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    // some browsers create the context suspended even inside a key press
+    if (this.ctx.state !== 'running') this.ctx.resume().catch(() => {});
+    // when the clock (re)starts, line the song up with it again
+    this.ctx.addEventListener('statechange', () => {
+      if (this.ctx.state === 'running' && this.song) this.nextTime = this.ctx.currentTime + 0.05;
+    });
     return true;
   }
 
@@ -190,6 +196,13 @@ export class Audio {
   schedule() {
     const s = this.song;
     if (!s || !this.ctx) return;
+    if (this.ctx.state !== 'running') {
+      this.ctx.resume().catch(() => {});
+      return;
+    }
+    // fell behind (background tab, a stall): skip ahead instead of firing
+    // a pile of late notes at once
+    if (this.nextTime < this.ctx.currentTime) this.nextTime = this.ctx.currentTime + 0.05;
     const stepDur = 60 / s.bpm / 4;
     while (this.nextTime < this.ctx.currentTime + 0.12) {
       const bar = s.bars[Math.floor(this.step / 16) % s.bars.length];

@@ -54,19 +54,22 @@ export class CameraRig {
       // pull back when there is a ceiling, tilt more on the lane map
       const lanes = !!m.lanes;
       const tall = ceil > 0 ? Math.max(0, ceil - 5) * 0.6 : 0;
-      const y = (lanes ? 7 : 4.4) + tall + (m.gimmick === 'lowGravity' ? Math.min(3, this.smoothY * 0.5) : 0);
-      // keep the dino about a fifth of the way in from the left on any aspect
-      const dist = 19 + tall * 2.2;
+      // pulled well back so there is room to see what's coming
+      const y = (lanes ? 8.2 : 5.6) + tall + (m.gimmick === 'lowGravity' ? Math.min(3, this.smoothY * 0.5) : 0);
+      // keep the dino about a sixth of the way in from the left on any aspect
+      const dist = 27 + tall * 2.2;
       const hw = Math.tan((32 * Math.PI) / 360) * dist * this.camera.aspect;
-      const cx = Math.max(3.5, hw * 0.62);
-      P.set(cx - 2.2, y, dist);
-      L.set(cx, (ceil ? ceil * 0.45 : 1.9) + (m.gimmick === 'lowGravity' ? this.smoothY * 0.4 : 0), 0);
+      const cx = Math.max(5, hw * 0.68);
+      P.set(cx - 2.6, y, dist);
+      L.set(cx, (ceil ? ceil * 0.45 : 2.1) + (m.gimmick === 'lowGravity' ? this.smoothY * 0.4 : 0), 0);
       return 32;
     }
     if (mode === 'chase') {
-      const y = flip ? ceil - 3.6 * scale : 3.7 * scale + this.smoothY * 0.55;
-      P.set(-6.8 * scale, y, z * 0.85);
-      L.set(9, flip ? ceil - 1.4 : 1.4 + this.smoothY * 0.5, z * 0.4);
+      // high and back, looking past the dino: it sits low in the frame so
+      // its head never hides the track ahead
+      const y = flip ? ceil - 5.4 * scale : 5.4 * scale + this.smoothY * 0.55;
+      P.set(-7.2 * scale, y, z * 0.85);
+      L.set(16, flip ? ceil - 0.8 : 0.6 + this.smoothY * 0.5, z * 0.4);
       return 62;
     }
     // first person: eyes, a touch above the snout

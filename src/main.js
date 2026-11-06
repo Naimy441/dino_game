@@ -516,6 +516,17 @@ function boot() {
     if (state === 'play') togglePause();
   });
 
+  // unlock audio on the very first interaction of any kind, and pick the
+  // song back up when the tab comes back
+  const unlock = () => {
+    audio.ensure();
+    if (state === 'play' && game.colorful && !audio.song) audio.playSong(game.map.id);
+  };
+  for (const ev of ['pointerdown', 'keydown', 'touchend']) window.addEventListener(ev, unlock, { capture: true });
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && audio.ctx) audio.ensure();
+  });
+
   // touch: tap anywhere to jump, buttons for the rest
   const isTouch = matchMedia('(pointer: coarse)').matches;
   function touchUi() {
@@ -688,7 +699,7 @@ function boot() {
 
   // for tests and debugging
   window.__dino = {
-    get game() { return game; }, get state() { return state; }, rig, world, post, camera, renderer, settings,
+    get game() { return game; }, get state() { return state; }, rig, world, post, camera, audio, renderer, settings,
     get fps() { return fps; },
     set autopilot(v) { autopilot = v; },
     start: (map = 0) => { pickMap = map; unlocked = Math.max(unlocked, map); startRun(); },
