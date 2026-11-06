@@ -28,6 +28,7 @@ export class CameraRig {
     this.time = 0;
     this.smoothY = 0;
     this.smoothZ = 0;
+    this.flipT = 0;
     this.attract = false;
   }
 
@@ -55,21 +56,32 @@ export class CameraRig {
       const lanes = !!m.lanes;
       const tall = ceil > 0 ? Math.max(0, ceil - 5) * 0.6 : 0;
       // pulled well back so there is room to see what's coming
-      const y = (lanes ? 8.2 : 5.6) + tall + (m.gimmick === 'lowGravity' ? Math.min(3, this.smoothY * 0.5) : 0);
+      let y = (lanes ? 8.2 : 5.6) + tall + (m.gimmick === 'lowGravity' ? Math.min(3, this.smoothY * 0.5) : 0);
+      // with a ceiling, look straight into the middle of the tunnel so the
+      // floor and the ceiling are both in view (and never from above it)
+      if (ceil) y = ceil * 0.58;
       // keep the dino about a sixth of the way in from the left on any aspect
       const dist = 27 + tall * 2.2;
       const hw = Math.tan((32 * Math.PI) / 360) * dist * this.camera.aspect;
       const cx = Math.max(5, hw * 0.68);
       P.set(cx - 2.6, y, dist);
-      L.set(cx, (ceil ? ceil * 0.45 : 2.1) + (m.gimmick === 'lowGravity' ? this.smoothY * 0.4 : 0), 0);
+      L.set(cx, (ceil ? ceil * 0.5 : 2.1) + (m.gimmick === 'lowGravity' ? this.smoothY * 0.4 : 0), 0);
       return 32;
     }
     if (mode === 'chase') {
       // high and back, looking past the dino: it sits low in the frame so
-      // its head never hides the track ahead
-      const y = flip ? ceil - 5.4 * scale : 5.4 * scale + this.smoothY * 0.55;
+      // its head never hides the track ahead. Under a ceiling the camera
+      // stays inside the tunnel, and through a gravity flip it glides
+      // between floor-side and ceiling-side instead of snapping.
+      let h = 5.4 * scale;
+      if (ceil) h = Math.min(h, ceil * 0.62);
+      const rise = ceil ? 0 : this.smoothY * 0.55;
+      const lift = Math.min(0.6 + this.smoothY * 0.5, ceil ? ceil - 0.6 : Infinity);
+      const yUp = h + (ceil && m.gimmick === 'swim' ? Math.min(this.smoothY * 0.5, ceil - h - 0.5) : rise);
+      const f = this.flipT;
+      const y = Math.max(0.5, yUp * (1 - f) + (ceil - h) * f);
       P.set(-7.2 * scale, y, z * 0.85);
-      L.set(16, flip ? ceil - 0.8 : 0.6 + this.smoothY * 0.5, z * 0.4);
+      L.set(16, lift * (1 - f) + (ceil - 0.6) * f, z * 0.4);
       return 62;
     }
     // first person: eyes, a touch above the snout
@@ -85,6 +97,8 @@ export class CameraRig {
     const d = game.dino;
     this.smoothY += (d.y - this.smoothY) * Math.min(1, dt * 5);
     this.smoothZ += (d.z - this.smoothZ) * Math.min(1, dt * 10);
+    const wantFlip = d.grav < 0 ? 1 : 0;
+    this.flipT += (wantFlip - this.flipT) * Math.min(1, dt * 7);
     const fov = this.target(this.mode, game, scale, tmpP, tmpL);
     if (this.blend < 1) {
       this.blend = Math.min(1, this.blend + dt * 2.2);
