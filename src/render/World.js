@@ -120,6 +120,26 @@ function paint(spec, w, h, seed, opts = {}) {
       g.fillRect(0, h - 1, w, 1);
       break;
     }
+    case 'stones': {
+      // paving stones / flagstones with dark grout
+      for (let y = 0; y < h; y += 8) {
+        const off = (y / 8) % 2 ? 6 : 0;
+        for (let x = 0; x < w; x += 12) {
+          g.fillStyle = r() < 0.5 ? spec.base : spec.alt || spec.base;
+          g.fillRect((x + off) % w, y, 11, 7);
+          if (x + off + 11 > w) g.fillRect(0, y, (x + off + 11) % w, 7);
+        }
+      }
+      specks();
+      break;
+    }
+    case 'planks': {
+      specks();
+      g.fillStyle = spec.line;
+      for (let y = 0; y < h; y += 6) g.fillRect(0, y, w, 1);
+      for (let y = 0; y < h; y += 6) g.fillRect(Math.floor(r() * w), y, 1, 6);
+      break;
+    }
     case 'rails': {
       specks();
       for (let x = 0; x < w; x += 8) {
@@ -173,15 +193,31 @@ export class World {
     this.hemi = new THREE.HemisphereLight('#fff', '#888', 1);
     this.sun = new THREE.DirectionalLight('#fff', 0.5);
     this.sun.position.set(-5, 14, 9);
-    scene.add(this.hemi, this.sun, this.sun.target);
+    // real shadows from the sun, in a box that follows the action
+    this.sun.castShadow = true;
+    const sc = this.sun.shadow.camera;
+    sc.left = -34; sc.right = 34; sc.top = 26; sc.bottom = -26; sc.near = 1; sc.far = 120;
+    this.sun.shadow.mapSize.set(2048, 2048);
+    this.sun.shadow.bias = -0.0008;
+    this.sun.shadow.normalBias = 0.03;
+    this.sun.target.position.set(18, 0, 0);
+    this.sunDir = new THREE.Vector3(-0.4, 1, 0.5).normalize();
+    // a coloured kicker light, level with the ground so it tints the faces
+    // of things standing on the track (what every camera sees of them) and
+    // never the ground itself
+    this.rim = new THREE.DirectionalLight('#fff', 0);
+    this.rim.position.set(-20, 0, 14);
+    scene.add(this.hemi, this.sun, this.sun.target, this.rim);
     scene.fog = new THREE.Fog('#f7f7f7', 40, 150);
 
     const groundGeo = new THREE.PlaneGeometry(RANGE_LEN + 60, 200);
     groundGeo.rotateX(-Math.PI / 2);
     this.ground = new THREE.Mesh(groundGeo, new THREE.MeshLambertMaterial());
+    this.ground.receiveShadow = true;
     this.ground.position.set(RANGE_X0 + (RANGE_LEN + 60) / 2 - 10, -0.002, -40);
     this.track = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshLambertMaterial());
     this.track.position.set(this.ground.position.x, 0.004, 0);
+    this.track.receiveShadow = true;
     this.ceiling = new THREE.Mesh(new THREE.PlaneGeometry(RANGE_LEN + 60, 200).rotateX(Math.PI / 2), new THREE.MeshLambertMaterial({ side: THREE.DoubleSide }));
     this.ceiling.position.set(this.ground.position.x, 6, -40);
     this.ceilTrack = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(Math.PI / 2), new THREE.MeshBasicMaterial());
@@ -214,11 +250,13 @@ export class World {
       const geo = def.make();
       const mesh = new THREE.InstancedMesh(geo, def.glow ? glowMaterial() : voxelMaterial(), def.n);
       mesh.frustumCulled = false;
+      mesh.castShadow = !def.glow && Math.abs(def.z[1]) < 45;
+      mesh.receiveShadow = !def.glow;
       const items = [];
       const range = def.spacing ? def.n * def.spacing : RANGE_LEN;
       for (let i = 0; i < def.n; i++) {
         items.push({
-          x: def.spacing ? RANGE_X0 + i * def.spacing : RANGE_X0 + r() * range,
+          x: def.spacing ? RANGE_X0 + i * def.spacing + (def.offset || 0) : RANGE_X0 + r() * range,
           z: def.z[0] + r() * (def.z[1] - def.z[0]),
           y: def.hang ?? (def.y ? def.y[0] + r() * (def.y[1] - def.y[0]) : 0),
           s: def.s[0] + r() * (def.s[1] - def.s[0]),
@@ -282,22 +320,59 @@ export class World {
     this.hemi.intensity = T.hemi[2] * Math.PI;
     this.sun.color.set(T.sun[0]);
     this.sun.intensity = T.sun[1] * Math.PI;
+    const L = T.light || {};
+    this.sunDir.set(...(L.sunDir || [-0.4, 1, 0.5])).normalize();
+    const sh = L.shadow ?? 0.5;
+    this.sun.castShadow = sh > 0;
+    this.sun.shadow.intensity = Math.min(1, sh);
+    // push more of the light into the sun so shadows actually read
+    // shift a little of the fill into the sun so shadows read, without
+    // brightening the scene overall
+    if (sh > 0) {
+      const k = sh * 0.12 * T.hemi[2] * Math.PI;
+      this.hemi.intensity -= k;
+      this.sun.intensity += k * 0.8;
+    }
+    // exposure: keep sky + sun on flat ground from blowing colours out to
+    // white (bright worlds used to wash out; dark ones are left alone)
+    const flat = (this.hemi.intensity + this.sun.intensity * Math.max(0, this.sunDir.y)) / Math.PI;
+    if (flat > 1.08) {
+      const k = 1.08 / flat;
+      this.hemi.intensity *= k;
+      this.sun.intensity *= k;
+    }
+    this.rim.color.set(L.rim ? L.rim[0] : '#ffffff');
+    this.rim.intensity = (L.rim ? L.rim[1] : 0.3) * Math.PI * 0.5;
 
     const glowGround = !!T.ground.glow;
     this.ground.material.dispose();
     this.ground.material = glowGround ? new THREE.MeshBasicMaterial({ map: b.groundTex }) : new THREE.MeshLambertMaterial({ map: b.groundTex });
     this.track.material.dispose();
     this.track.material = T.track.glow ? new THREE.MeshBasicMaterial({ map: b.trackTex }) : new THREE.MeshLambertMaterial({ map: b.trackTex });
+    // open water: see-through, so you can see the dino dive
+    if (T.water) {
+      for (const mat of [this.ground.material, this.track.material]) {
+        mat.transparent = true;
+        mat.opacity = mat === this.track.material ? 0.55 : 0.72;
+        mat.depthWrite = false;
+      }
+    }
+    this.waterTex = T.water ? b.groundTex : null;
     this.track.scale.set(RANGE_LEN + 60, 1, b.trackW);
     const C = T.ceiling;
     this.ceiling.visible = !!C;
+    this.surfaceTex = null;
     this.ceilTrack.visible = !!(C && C.line);
     if (C) {
       this.ceiling.position.y = C.y;
-      this.ceiling.material.color.set(C.color);
-      this.ceiling.material.transparent = C.opacity < 1;
-      this.ceiling.material.opacity = C.opacity;
-      this.ceiling.material.needsUpdate = true;
+      // under the sea the ceiling is the water's surface: rippling light
+      // seen from below, drifting with the swell
+      this.ceiling.material.dispose();
+      this.ceiling.material = C.water
+        ? new THREE.MeshBasicMaterial({ map: b.surfaceTex || (b.surfaceTex = paint({ base: '#3aa7d8', specks: ['#bff4ff', '#7fdcff', '#e8fdff'], density: 0.16, pattern: 'ripples' }, TILE, TILE, 77)), transparent: true, opacity: C.opacity, side: THREE.DoubleSide, depthWrite: false, fog: false })
+        : new THREE.MeshLambertMaterial({ side: THREE.DoubleSide, color: C.color, transparent: C.opacity < 1, opacity: C.opacity });
+      if (C.water) b.surfaceTex.repeat.set((RANGE_LEN + 60) / TILE_U / 2, 200 / TILE_U / 2);
+      this.surfaceTex = C.water ? b.surfaceTex : null;
       if (C.line) {
         this.ceilTrack.material.map = b.trackTex;
         this.ceilTrack.material.needsUpdate = true;
@@ -339,6 +414,15 @@ export class World {
     const off = distance / TILE_U;
     b.groundTex.offset.x = off % 1;
     b.trackTex.offset.x = off % 1;
+    // water swells
+    if (this.waterTex) {
+      this.waterTex.offset.y = Math.sin(this.time * 0.7) * 0.05;
+      b.trackTex.offset.y = Math.sin(this.time * 0.9 + 1) * 0.04;
+    }
+    if (this.surfaceTex) {
+      this.surfaceTex.offset.x = (off * 0.5 + this.time * 0.03) % 1;
+      this.surfaceTex.offset.y = Math.sin(this.time * 0.5) * 0.1;
+    }
     const m4 = new THREE.Matrix4();
     const q = new THREE.Quaternion();
     const e = new THREE.Euler();
@@ -367,6 +451,10 @@ export class World {
       }
       mesh.instanceMatrix.needsUpdate = true;
     }
+    // the sun (and its shadow box) stays aimed at the stretch ahead
+    this.sun.target.position.set(16, 0, 0);
+    this.sun.position.copy(this.sun.target.position).addScaledVector(this.sunDir, 60);
+    this.rim.target.position.set(0, 0, 0);
     // sky follows the camera; clouds drift
     this.sky.position.copy(camera.position);
     for (const m of b.sky.children) {

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { dinoParts, gear } from './models.js';
 import { voxelMaterial, glowMaterial } from './voxel.js';
-import { GIANT_SCALE } from '../game/Game.js';
+import { GIANT_SCALE, ABILITY } from '../game/Game.js';
 
 // The player's dino: a chunky voxel T-rex whose legs step in two choppy
 // frames like a sprite, plus the gear each world hands it.
@@ -62,6 +62,33 @@ export class DinoView {
     this.glowLight = new THREE.PointLight('#ffffff', 0, 9, 0);
     this.glowLight.position.set(1, 2, 2);
     this.root.add(this.glowLight);
+    // flashes of light from the dino's abilities (fire, muzzle, phase)
+    this.actLight = new THREE.PointLight('#ff8a1a', 0, 14, 1.4);
+    this.actLight.position.set(1.6, 1.4, 0.6);
+    this.root.add(this.actLight);
+
+    // new gear
+    this.gun = new THREE.Mesh(gear.gun(), voxelMaterial());
+    this.gunPivot = new THREE.Group();
+    this.gunPivot.add(this.gun);
+    this.lift.add(this.gunPivot);
+    this.katana = new THREE.Mesh(gear.katana(), voxelMaterial());
+    this.katanaPivot = new THREE.Group();
+    this.katanaPivot.add(this.katana);
+    this.lift.add(this.katanaPivot);
+    this.headband = new THREE.Mesh(gear.headband(), voxelMaterial());
+    this.headband.position.set(0.22, LEG_Y + 1.33, 0);
+    this.lift.add(this.headband);
+    this.pogo = new THREE.Mesh(gear.pogo(), voxelMaterial());
+    this.pogo.position.set(-0.05, 0, 0);
+    this.pose.add(this.pogo);
+    this.parasol = new THREE.Mesh(gear.parasol(), voxelMaterial());
+    this.parasol.position.set(-0.2, 2.45, 0);
+    this.lift.add(this.parasol);
+    this.parasolOpen = 0;
+    this.phaseMat = new THREE.MeshBasicMaterial({ color: '#7dfff0', transparent: true, opacity: 0.45, depthWrite: false });
+    this.phased = false;
+    for (const m of [this.body, this.duck, this.legA, this.legB, this.pickaxe, this.cart, this.snowboard, this.gun, this.katana, this.pogo, this.parasol, this.headband]) m.castShadow = true;
 
     this.stepT = 0;
     this.frame = 0;
@@ -94,7 +121,12 @@ export class DinoView {
     this.lamp.visible = !!theme.headlamp;
     this.spot.intensity = theme.headlamp ? 9 : 0;
     this.glowLight.intensity = theme.headlamp ? 2.5 : 0;
-    this.lift.position.y = gimmick === 'cart' ? 0.42 : gimmick === 'snowboard' ? 0.1 : gimmick === 'lanes' ? 0.3 : 0;
+    this.gunPivot.visible = gimmick === 'gun';
+    this.katanaPivot.visible = gimmick === 'dash';
+    this.headband.visible = gimmick === 'dash';
+    this.pogo.visible = gimmick === 'pogo';
+    this.parasol.visible = false;
+    this.lift.position.y = gimmick === 'cart' ? 0.42 : gimmick === 'snowboard' ? 0.1 : gimmick === 'lanes' ? 0.3 : gimmick === 'pogo' ? 0.75 : 0;
   }
 
   // first person: hide what would sit inside the lens
@@ -176,6 +208,50 @@ export class DinoView {
       this.pickPivot.position.x = d.ducking ? 0.6 : 0.3;
     }
     this.lamp.position.set(d.ducking ? 0.95 : 0.15, LEG_Y + (d.ducking ? 0.62 : 1.47), 0);
+
+    // gun: held at the chest, kicks back on every shot
+    if (g === 'gun') {
+      const kick = d.actT > 0 ? d.actT / ABILITY.gun[0] : 0;
+      this.gunPivot.position.set((d.ducking ? 0.95 : 0.5) - kick * 0.12, d.ducking ? 0.72 : 1.12, 0.42);
+      this.gunPivot.rotation.z = kick * 0.35;
+    }
+    // katana rests on the back, sweeps forward on a dash
+    if (g === 'dash') {
+      const dash = d.actT > 0;
+      this.katanaPivot.position.set(dash ? 0.9 : -0.5, dash ? 1.05 : 1.6, 0.45);
+      this.katanaPivot.rotation.z = dash ? -1.45 : 2.4;
+      this.headband.position.set(d.ducking ? 0.9 : 0.22, LEG_Y + (d.ducking ? 0.52 : 1.33), 0);
+      this.headband.visible = !fp;
+      if (dash) this.pose.rotation.z -= 0.22;
+    }
+    // swimming in the lagoon: sit low in the water, paddling
+    if (g === 'paddle') {
+      const want = d.y <= 0.01 ? -0.6 : 0;
+      this.lift.position.y += (want - this.lift.position.y) * Math.min(1, dt * 10);
+      this.pose.rotation.z = d.y < -0.05 ? -0.35 : Math.sin(this.stepT * 1.5) * 0.06;
+    }
+    // parasol pops open while gliding
+    const wantOpen = g === 'glide' && d.gliding ? 1 : 0;
+    this.parasolOpen += (wantOpen - this.parasolOpen) * Math.min(1, dt * 14);
+    this.parasol.visible = this.parasolOpen > 0.05 && !fp;
+    this.parasol.scale.set(this.parasolOpen, 0.4 + 0.6 * this.parasolOpen, this.parasolOpen);
+    // pogo: the spring squashes on landing
+    if (g === 'pogo') this.pogo.scale.y = d.y < 0.25 && d.vy > 0 ? 0.82 : 1;
+    // phase: a see-through ghost of a dino
+    const ph = g === 'phase' && d.actT > 0;
+    if (ph !== this.phased) {
+      this.phased = ph;
+      for (const m of [this.body, this.duck, this.legA, this.legB]) m.material = ph ? this.phaseMat : voxelMaterial();
+    }
+    if (ph) this.phaseMat.opacity = 0.3 + Math.sin(performance.now() / 40) * 0.12;
+    // ability light
+    let li = 0, lc = null;
+    if (d.fireT > 0) { li = 9 * (d.fireT / 0.42); lc = '#ff7a1a'; }
+    else if (g === 'gun' && d.actT > 0) { li = 14 * (d.actT / ABILITY.gun[0]); lc = '#ffd23f'; }
+    else if (ph) { li = 5; lc = '#5dfff0'; }
+    else if (g === 'dash' && d.actT > 0) { li = 4; lc = '#ffffff'; }
+    this.actLight.intensity = li;
+    if (lc) this.actLight.color.set(lc);
   }
 
   // mouth position in world space (fire breath, bubbles)

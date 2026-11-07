@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Game, PHYS } from '../src/game/Game.js';
-import { Bot } from '../src/game/Bot.js';
+import { CLASSIC, px, speedForScore } from '../src/game/classic.js';
+import { Bot, solve } from '../src/game/Bot.js';
 import { MAPS, COLOR_SCORE, MAP_LENGTH, mapForScore, mapStartScore } from '../src/game/maps.js';
 
 const STEP = 1 / 120;
@@ -14,7 +15,7 @@ const run = (g, secs, each) => {
 const idx = (id) => MAPS.findIndex((m) => m.id === id);
 const place = (g, type, x, extra = {}) => {
   const spec = [...g.map.ground, ...g.map.air].find((s) => s.type === type);
-  const o = { id: 999 + g.obstacles.length, type, map: g.map.id, x, y: 0, baseY: 0, w: spec.w, h: spec.h, vx: 0, tags: spec.tags || [], z: 0, lane: 1, bob: 0, phase: 0, drop: false, falling: false, vy: 0, ceil: false, used: false, ...extra };
+  const o = { id: 999 + g.obstacles.length, type, map: g.map.id, x, y: 0, baseY: 0, w: spec.w, h: spec.h, vx: 0, tags: spec.tags || [], z: 0, lane: 1, bob: 0, phase: 0, drop: false, falling: false, vy: 0, ceil: false, used: false, hp: spec.hp || 1, fullH: spec.h, rise: 0, vis: 1, pit: false, ...extra };
   g.obstacles.push(o);
   return o;
 };
@@ -32,7 +33,7 @@ test('worlds: classic desert until 200, then a new world every 350 points, loopi
   assert.equal(mapForScore(last).index, MAPS.length - 1);
   const loop = mapForScore(last + MAP_LENGTH);
   assert.deepEqual(loop, { index: 1, lap: 1 });
-  assert.ok(MAPS.length >= 12);
+  assert.ok(MAPS.length >= 18);
   // every world after the first has a gimmick
   for (const m of MAPS.slice(1)) assert.ok(m.gimmick, `${m.id} has a gimmick`);
   assert.equal(MAPS[0].gimmick, null);
@@ -169,28 +170,249 @@ test('neon highway: lanes dodge cars', () => {
   assert.equal(g.dino.lane, 2);
 });
 
-test('speed ramps up toward the cap', () => {
-  const g = new Game({ seed: 12 });
-  const s0 = g.speed;
-  g.score = 5000;
-  assert.ok(g.targetSpeed() > s0 + 15);
-  assert.ok(g.targetSpeed() <= PHYS.maxSpeed);
+test('walls are too tall to jump: only the ability gets you through', () => {
+  for (const [map, type] of [['volcano', 'thornWall'], ['blocky', 'stoneWall']]) {
+    // jumping does not clear it
+    let g = new Game({ seed: 20, startMap: idx(map) });
+    quiet(g);
+    place(g, type, 7);
+    g.pressJump();
+    g.setJump(true);
+    run(g, 1.2);
+    assert.equal(g.alive, false, `${type}: jumped into it`);
+    // the ability does
+    g = new Game({ seed: 20, startMap: idx(map) });
+    quiet(g);
+    place(g, type, type === 'stoneWall' ? 2.6 : 5);
+    g.pressAction();
+    run(g, 0.3);
+    assert.ok(g.alive, `${type}: broke through`);
+    assert.ok(g.drainEvents().some((e) => e.type === 'wall'));
+  }
 });
 
-test('fair spawns: the look-ahead bot clears every world', () => {
-  for (let i = 0; i < MAPS.length; i++) {
-    for (const seed of [11, 29]) {
-      const g = new Game({ seed: seed * 101 + i, startMap: i });
-      const b = new Bot(g, STEP);
-      const end = mapStartScore(i) + (i === 0 ? COLOR_SCORE : MAP_LENGTH);
-      let t = 0;
-      while (g.alive && g.score < end && t < 90) {
-        b.update(STEP);
+test('shadow city: gold bullets drop goons, bruisers take three', () => {
+  const g = new Game({ seed: 21, startMap: idx('city') });
+  quiet(g);
+  const b = place(g, 'bruiser', 26);
+  g.pressAction();
+  run(g, 0.25);
+  assert.equal(b.hp, 2);
+  g.pressAction(); // buffered until the cooldown ends
+  run(g, 0.3);
+  assert.equal(b.hp, 1);
+  g.pressAction();
+  run(g, 0.3);
+  assert.ok(!g.obstacles.includes(b), 'bruiser down');
+  assert.ok(g.alive);
+});
+
+test('planet zorb: phase through force fields, not without', () => {
+  for (const phase of [true, false]) {
+    const g = new Game({ seed: 22, startMap: idx('alien') });
+    quiet(g);
+    place(g, 'field', 6);
+    if (phase) g.pressAction();
+    run(g, 0.6);
+    assert.equal(g.alive, phase);
+  }
+});
+
+test('haunted hollow: ghosts are only solid while visible', () => {
+  for (const solid of [true, false]) {
+    const g = new Game({ seed: 23, startMap: idx('haunted') });
+    quiet(g);
+    // phase chosen so the ghost is fully visible / invisible as it arrives
+    const ph = solid ? Math.PI / 2 : -Math.PI / 2;
+    place(g, 'ghost', 2, { tags: ['ghost'], phase: ph - g.time * 3.4 - 0.05 * 3.4 });
+    run(g, 0.1);
+    assert.equal(g.alive, !solid);
+  }
+});
+
+test('sky kingdom: fall in a gap and it is over; gliding crosses a chasm', () => {
+  let g = new Game({ seed: 24, startMap: idx('sky') });
+  quiet(g);
+  place(g, 'gap', 4, { w: 6, tags: ['pit'], pit: true });
+  run(g, 1);
+  assert.equal(g.alive, false);
+  assert.equal(g.deathCause, 'pit');
+  g = new Game({ seed: 24, startMap: idx('sky') });
+  quiet(g);
+  const w = g.speed * 1.0;
+  place(g, 'chasm', 1 + w / 2, { w, tags: ['pit'], pit: true });
+  g.pressJump();
+  g.setJump(true);
+  run(g, 2);
+  assert.ok(g.alive, 'glided over');
+});
+
+test('bamboo dojo: dash cuts through paper walls', () => {
+  for (const dash of [true, false]) {
+    const g = new Game({ seed: 25, startMap: idx('dojo') });
+    quiet(g);
+    place(g, 'shoji', 4);
+    if (dash) g.pressAction();
+    run(g, 0.5);
+    assert.equal(g.alive, dash);
+  }
+});
+
+test('toy box: the pogo stick never stops bouncing; hold jump for big bounces', () => {
+  const peak = (hold) => {
+    const g = new Game({ seed: 26, startMap: idx('toybox') });
+    quiet(g);
+    g.setJump(hold);
+    let top = 0, bounces = 0;
+    run(g, 2, () => (top = Math.max(top, g.dino.y)));
+    for (const e of g.drainEvents()) if (e.type === 'boing') bounces++;
+    return { top, bounces };
+  };
+  const small = peak(false), big = peak(true);
+  assert.ok(small.bounces >= 4, `kept bouncing (${small.bounces})`);
+  assert.ok(big.top > small.top + 1, `big ${big.top} > small ${small.top}`);
+});
+
+test('every world unlocked: worlds come in a shuffled order, all before repeats', () => {
+  const g = new Game({ seed: 27, startMap: idx('neon'), shuffle: true });
+  assert.equal(g.map.id, 'neon');
+  const n = MAPS.length - 1;
+  const seen = [];
+  for (let k = 0; k < n * 2; k++) seen.push(g.mapAt(mapStartScore(idx('neon')) + k * MAP_LENGTH + 1).index);
+  for (let k = 1; k < seen.length; k++) assert.notEqual(seen[k], seen[k - 1], 'no world twice in a row');
+  assert.ok(!seen.includes(0), 'never back to the grey desert');
+  assert.equal(new Set(seen.slice(1, 1 + n)).size, n, 'a full bag of worlds');
+  const plain = new Game({ seed: 27, startMap: idx('neon') });
+  assert.equal(plain.mapAt(mapStartScore(idx('neon')) + MAP_LENGTH + 1).index, idx('neon') + 1);
+});
+
+test('speed and score follow the original runner', () => {
+  const g = new Game({ seed: 12 });
+  quiet(g);
+  const toSpf = (u) => (u * CLASSIC.px) / CLASSIC.fps;
+  assert.ok(Math.abs(toSpf(g.speed) - 6) < 1e-9, 'starts at 6 px/frame');
+  // +0.001 px/frame every frame: 60 frames later, 6.06
+  for (let i = 0; i < 120; i++) g.update(1 / 120);
+  assert.ok(Math.abs(g.spf - 6.06) < 1e-6, `after 1 s: ${g.spf}`);
+  // score is pixels run x 0.025: about 6 px x 60 frames x 0.025 = 9 a second
+  assert.ok(Math.abs(g.score - 9.0) < 0.05, `score after 1 s: ${g.score}`);
+  // capped at 13, reached after (13 - 6) / 0.001 frames
+  for (let i = 0; i < 120 * 120; i++) g.update(1 / 120);
+  assert.equal(g.spf, CLASSIC.maxSpeed);
+  // starting in a later world starts at the speed you'd have reached
+  const later = new Game({ seed: 12, startMap: 3 });
+  assert.ok(Math.abs(later.spf - speedForScore(mapStartScore(3))) < 1e-9);
+  assert.ok(later.spf > 6);
+});
+
+test('spawns follow the original runner: 3 s clear, gaps, groups, types', () => {
+  const g = new Game({ seed: 13 });
+  // nothing reaches the dino before 3 s plus the trip across the screen
+  const first = Math.min(...g.obstacles.map((o) => o.x - o.w / 2));
+  const want = g.speed * CLASSIC.clearTime + px(CLASSIC.screen - CLASSIC.startX);
+  assert.ok(first >= want, `first obstacle at ${first}, want >= ${want}`);
+  // check every gap against random(minGap, 1.5 minGap) from the formula
+  const runs = [];
+  let streak = 0, last = null;
+  for (let k = 0; k < 400; k++) {
+    const spf = (g.speed * CLASSIC.px) / CLASSIC.fps;
+    const before = g.obstacles.length;
+    const x = 0;
+    const adv = g.spawn(x);
+    const made = g.obstacles.slice(before);
+    const spec = [...g.map.ground, ...g.map.air].find((s) => s.type === made[0].type);
+    const n = made.length;
+    assert.ok(n >= 1 && n <= 3);
+    if (n > 1) assert.ok(spf >= spec.multipleSpeed, 'groups only once fast enough');
+    if (spec.minSpeed) assert.ok(spf >= spec.minSpeed, 'pterodactyls only from 8.5');
+    const minGap = Math.round(n * spec.pxW * spf + spec.minGap * 0.6);
+    const gapPx = (adv - px(spec.pxW) - n * spec.w * 1.02) * CLASSIC.px;
+    assert.ok(gapPx >= minGap - 1e-6 && gapPx <= Math.round(minGap * 1.5) + 1e-6, `gap ${gapPx} in [${minGap}, ${minGap * 1.5}]`);
+    streak = made[0].type === last ? streak + 1 : 1;
+    last = made[0].type;
+    assert.ok(streak <= 2, 'never three of a kind in a row');
+    runs.push(made[0].type);
+    g.obstacles.length = before;
+    g.spf = 6 + (k / 400) * 7; // sweep the speed range
+    g.speed = g.targetSpeed();
+  }
+  assert.ok(runs.includes('bat') && runs.includes('cactusSmall') && runs.includes('cactusTall'));
+});
+
+// Plays a run with the look-ahead bot. If the bot slips, a breadth-first
+// search over every input from about a second earlier decides whether there
+// was any way through; if there was, the run carries on along that path.
+// Returns the cause of death of a layout nothing could get through, or null.
+export function playFair(g, done, maxT = 90) {
+  let bot = new Bot(g, STEP);
+  let snaps = [];
+  let frame = 0;
+  const tick = () => {
+    if (frame % 30 === 0) {
+      snaps.push({ g: g.clone(), frame });
+      if (snaps.length > 24) snaps.shift();
+    }
+    frame++;
+  };
+  while (!done(g) && frame * STEP < maxT) {
+    tick();
+    bot.update(STEP);
+    g.update(STEP);
+    g.drainEvents();
+    if (g.alive) continue;
+    // search from about a second before, then further back if the dino was
+    // already doomed by then
+    let s0 = null, path = null;
+    for (const x of [...snaps].reverse()) {
+      if (frame - x.frame < 120) continue;
+      if (frame - x.frame > 360) break;
+      path = solve(x.g, 2.5, STEP);
+      if (path) {
+        s0 = x;
+        break;
+      }
+    }
+    if (!path) return `${g.deathCause} at ${Math.round(g.score)}`;
+    g = s0.g.clone();
+    frame = s0.frame;
+    snaps = snaps.filter((x) => x.frame < frame);
+    for (const inp of path) {
+      if (inp.jump && !g.input.jump) g.pressJump();
+      g.setJump(!!inp.jump);
+      g.setDuck(!!inp.duck);
+      if (inp.act) g.pressAction();
+      if (inp.lane) g.pressLane(inp.lane);
+      for (let k = 0; k < 2; k++) {
+        tick();
         g.update(STEP);
         g.drainEvents();
-        t += STEP;
       }
-      assert.ok(g.alive, `${MAPS[i].id} seed ${seed}: died to ${g.deathCause} at ${Math.round(g.score)}`);
     }
+    g.setJump(false);
+    g.setDuck(false);
+    bot = new Bot(g, STEP);
+  }
+  return null;
+}
+
+test('fair spawns: every world can always be survived', () => {
+  for (let i = 0; i < MAPS.length; i++) {
+    for (const seed of [11]) {
+      const g = new Game({ seed: seed * 101 + i, startMap: i });
+      const end = mapStartScore(i) + (i === 0 ? COLOR_SCORE : MAP_LENGTH);
+      const dead = playFair(g, (x) => x.score >= end || x.mapIndex !== i);
+      assert.equal(dead, null, `${MAPS[i].id} seed ${seed}: no way past ${dead}`);
+    }
+  }
+});
+
+test('fair spawns: the classic desert stays fair at top speed', () => {
+  for (const seed of [3]) {
+    const g = new Game({ seed });
+    g.mapAt = () => ({ index: 0, lap: 0 }); // never leave the desert
+    g.spf = 12; // start near top speed
+    g.speed = g.targetSpeed();
+    const dead = playFair(g, (x) => x.time > 30, 35);
+    assert.equal(dead, null, `desert seed ${seed}: no way past ${dead}`);
   }
 });

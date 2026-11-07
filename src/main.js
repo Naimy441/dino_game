@@ -1,6 +1,6 @@
 import './style.css';
 import * as THREE from 'three';
-import { Game } from './game/Game.js';
+import { Game, ABILITY } from './game/Game.js';
 import { Bot } from './game/Bot.js';
 import { MAPS, COLOR_SCORE, mapStartScore } from './game/maps.js';
 import { World } from './render/World.js';
@@ -51,6 +51,8 @@ function boot() {
   }
   renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
   renderer.setPixelRatio(1);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 400);
@@ -94,6 +96,7 @@ function boot() {
   let currentTheme = null;
   let fps = 60;
   let autopilot = params.has('bot');
+  let faceAmt = settings.camera === 'side' ? 0 : 1;
   const tmp = new THREE.Vector3();
 
   // ------------------------------------------------------------ setup
@@ -117,6 +120,8 @@ function boot() {
     world.setTheme(id);
     dino.setGear(game.map.gimmick, T);
     post.uniforms.uWobble.value = T.wobble || 0;
+    post.setLook(T.light);
+    obstacles.prewarm(game.map);
     post.uniforms.uDark.value = T.headlamp ? 0.6 : 0;
     applyVignette();
     const meta = document.querySelector('meta[name="theme-color"]');
@@ -134,8 +139,10 @@ function boot() {
     post.uniforms.uVignette.value = !document.body.classList.contains('color') ? 0 : T.headlamp ? 0.9 : 0.25;
   }
 
+  const allUnlocked = () => unlocked >= MAPS.length - 1;
   function newGame(startMap, demo = false) {
-    game = new Game({ startMap });
+    // once every world has been reached, runs visit them in a random order
+    game = new Game({ startMap, shuffle: !demo && allUnlocked() });
     bot = new Bot(game, 1 / 120);
     obstacles.clear();
     particles.clear();
@@ -170,6 +177,7 @@ function boot() {
     let meter = null;
     if (g === 'fire') meter = ['FIRE', 1 - d.fireCd / 0.75];
     else if (g === 'pickaxe') meter = ['PICK', 1 - d.swingCd / 0.32];
+    else if (ABILITY[g]) meter = [ACT_NAME[g], 1 - d.actCd / ABILITY[g][1]];
     else if (d.giant > 0) meter = ['GIANT', d.giant / 5];
     const el = $('hud-meter');
     if (meter && state === 'play') {
@@ -177,7 +185,23 @@ function boot() {
       $('hud-meter-label').textContent = meter[0];
       $('hud-meter-fill').style.width = `${Math.max(0, Math.min(1, meter[1])) * 100}%`;
     } else el.classList.add('hidden');
+
+    // a wall you can only get through with the world's ability: say so
+    const wall = state === 'play' && game.alive ? game.nextWall(26) : null;
+    const hint = $('hud-hint');
+    if (wall) {
+      if (wall.id !== lastWall) {
+        lastWall = wall.id;
+        audio.sfx('warn');
+      }
+      const verb = { fire: 'BURN IT', pickaxe: 'MINE IT', gun: 'SHOOT IT', phase: 'PHASE', dash: 'DASH' }[g] || 'GO';
+      hint.textContent = `${isTouch ? ACT_NAME[g] || 'X' : 'X'}  ${verb}!`;
+      hint.classList.remove('hidden');
+      hint.classList.toggle('urgent', wall.x < game.speed * 0.45 + 4);
+    } else hint.classList.add('hidden');
   }
+  let lastWall = -1;
+  const ACT_NAME = { fire: 'FIRE', pickaxe: 'PICK', gun: 'SHOOT', phase: 'PHASE', dash: 'DASH' };
   function updateWorldLabel() {
     $('hud-world-n').textContent = `${game.mapIndex + 1}/${MAPS.length}`;
     $('hud-world-name').textContent = game.map.name;
@@ -218,6 +242,7 @@ function boot() {
     $('world-prev').disabled = pickMap <= 0;
     $('world-next').disabled = pickMap >= unlocked;
     $('menu-best').textContent = String(best);
+    $('menu-shuffle').classList.toggle('hidden', !allUnlocked());
     $('hud-hi').textContent = pad(best);
   }
 
@@ -348,6 +373,68 @@ function boot() {
           audio.sfx('burn');
           burstAt(e.x, e.y + 0.6, e.z, ['#1a1010', '#ff7b00', '#ffd23f', '#3b2b2b'], 30, 7);
           popText(`+${e.points}`, e.x, e.y + 1.8);
+          break;
+        case 'shoot': {
+          audio.sfx('shoot');
+          const s = dino.scale, up = d.grav > 0 ? 1 : -1;
+          particles.emit({ x: 1.1 * s, y: d.y + up * (d.ducking ? 0.62 : 1.12) * s, z: d.z + 0.3, n: 6, colors: ['#ffd23f', '#fff3b0', '#ff9f1a'], speed: 5, dir: [1, 0.1, 0], spread: 0.6, gravity: 0, life: 0.12, size: 0.12, scroll: 0 });
+          break;
+        }
+        case 'hit':
+          audio.sfx('hit');
+          burstAt(e.x, e.y, e.z, ['#ffd23f', '#ffffff'], 8, 5);
+          break;
+        case 'clink':
+          audio.sfx('clink');
+          burstAt(e.x, e.y, e.z, ['#ffd23f', '#9e9e9e'], 5, 4);
+          break;
+        case 'shot':
+          audio.sfx('kill');
+          burstAt(e.x, e.y + 0.8, e.z, ['#17191f', '#2a2d36', '#ffcf3f'], 26, 7);
+          popText(`+${e.points}`, e.x, e.y + 2);
+          break;
+        case 'wall': {
+          // the big payoff: the thing you couldn't jump is blown apart
+          audio.sfx('wall');
+          const C = {
+            thornWall: ['#ff7a1a', '#3b2a22', '#ffd23f', '#1c1210'], stoneWall: ['#7b7b7b', '#555555', '#62a83a', '#4ee6e0'],
+            bruiser: ['#17191f', '#ffcf3f', '#2a2d36'], shoji: ['#f8f1de', '#6b4226', '#ffffff'],
+          }[e.obstacle] || ['#ffffff', '#ffd23f'];
+          for (let k = 0; k < 5; k++) burstAt(e.x, e.y + 0.5 + k, e.z, C, 18, 9);
+          popText(`+${e.points}`, e.x, e.y + 3);
+          rig.shake(0.3);
+          flash = Math.max(flash, 0.2);
+          post.uniforms.uFlashColor.value.set('#ffffff');
+          break;
+        }
+        case 'phase':
+          audio.sfx('phase');
+          particles.emit({ x: 0, y: d.y + 1, z: d.z, n: 20, colors: ['#5dfff0', '#ffffff', '#ff4fd8'], speed: 3, up: 0, life: 0.5, size: 0.1, gravity: 0, scroll: 0 });
+          break;
+        case 'phased':
+          popText(`PHASE +${e.points}`, 0.5, 2.8);
+          break;
+        case 'dash':
+          audio.sfx('dash');
+          rig.shake(0.12);
+          break;
+        case 'slash':
+          audio.sfx('slash');
+          burstAt(e.x, e.y + 0.4, e.z, ['#cfd8dc', '#ffffff'], 12, 6);
+          popText(`+${e.points}`, e.x, e.y + 1.4);
+          break;
+        case 'dive':
+          audio.sfx('swim');
+          particles.emit({ x: 0.2, y: 0.1, z: d.z, n: 18, colors: ['#ffffff', '#bdeeff', '#4fc3f7'], speed: 4, up: 4, life: 0.6, size: 0.13, gravity: -14 });
+          break;
+        case 'glide':
+          audio.sfx('glide');
+          break;
+        case 'boing':
+          if (e.big) audio.sfx('boing');
+          break;
+        case 'popup':
+          audio.sfx('crash');
           break;
         case 'kill':
           audio.sfx('kill');
@@ -533,8 +620,8 @@ function boot() {
     if (!isTouch || state !== 'play') return show('touch', false);
     show('touch', true);
     const g = game.map.gimmick;
-    show('t-act', g === 'fire' || g === 'pickaxe');
-    $('t-act').textContent = g === 'pickaxe' ? 'PICK' : 'FIRE';
+    show('t-act', !!ACT_NAME[g]);
+    $('t-act').textContent = ACT_NAME[g] || 'FIRE';
     show('t-left', !!game.map.lanes);
     show('t-right', !!game.map.lanes);
   }
@@ -643,16 +730,29 @@ function boot() {
     // hide the dino's own body once the camera is (nearly) inside its head
     dino.setFirstPerson(rig.mode === 'first' && rig.blend > 0.6);
     dino.update(visDt, game, game.alive);
-    obstacles.update(visDt * timeScale, game);
+    // obstacles turn to face the chase / first-person camera
+    faceAmt += ((rig.mode === 'side' ? 0 : 1) - faceAmt) * Math.min(1, dt * 5);
+    obstacles.update(visDt * timeScale, game, camera, faceAmt);
     // fire breath and other trails
     if (state === 'play' && game.alive) {
       const d = game.dino;
+      const g0 = game.map.gimmick;
       if (d.fireT > 0) {
         dino.mouth(game, tmp);
         // in first person the flames start a little ahead so they don't fill the lens
         if (rig.mode === 'first') tmp.set(tmp.x + 1.4, tmp.y - 0.45 * d.grav, tmp.z);
         particles.emit({ x: tmp.x, y: tmp.y, z: tmp.z, n: 6, colors: ['#ff3b00', '#ff8a1a', '#ffd23f', '#fff3b0'], speed: 16, dir: [1, 0.06, 0], spread: 0.45, gravity: 3, life: 0.36, size: 0.14, sizeEnd: 0.45, scroll: 0, drag: 2 });
       }
+      if (g0 === 'dash' && d.actT > 0) {
+        // speed lines and an afterimage while dashing
+        particles.emit({ x: -0.6 + Math.random(), y: d.y + 0.2 + Math.random() * 1.6, z: d.z + (Math.random() - 0.5) * 0.6, n: 2, colors: ['#ffffff', '#ffaccb', '#ff8a2a'], speed: 0, up: 0, gravity: 0, life: 0.18, size: 0.12, scroll: 1.4, drag: 0 });
+      }
+      if (g0 === 'paddle') {
+        // splashing along the surface, bubbles when under
+        if (d.y > -0.05 && d.y < 0.3) particles.emit({ x: 0.6 + Math.random() * 0.4, y: 0.05, z: d.z + (Math.random() - 0.5) * 0.8, n: 2, colors: ['#ffffff', '#d6f4ff'], speed: 2, up: 3, life: 0.4, size: 0.1, gravity: -14 });
+        else if (d.y < -0.05 && Math.random() < 0.4) particles.emit({ x: 0.8, y: d.y + 1.2, z: d.z, n: 1, colors: ['#e0f8ff'], speed: 0.3, up: 2, life: 0.8, size: 0.08, gravity: 1 });
+      }
+      if (g0 === 'phase' && d.actT > 0 && Math.random() < 0.6) particles.emit({ x: -0.6 + Math.random() * 1.4, y: d.y + Math.random() * 1.8, z: d.z, n: 1, colors: ['#5dfff0', '#ffffff'], speed: 0.5, up: 0.5, gravity: 0, life: 0.4, size: 0.08, scroll: 0.5 });
       if (d.giant > 0 && Math.random() < 0.5) particles.emit({ x: (Math.random() - 0.5) * 2, y: d.y + Math.random() * 3, z: d.z, n: 1, colors: ['#ff4081', '#ffd740', '#ffffff'], speed: 1, up: 1, life: 0.6, size: 0.12, gravity: 0 });
       const g = game.map.gimmick;
       if (g === 'lanes') particles.emit({ x: -1, y: 0.2, z: d.z + (Math.random() - 0.5) * 0.5, n: 1, colors: ['#ff2bd6', '#00f0ff'], speed: 0.5, up: 0, life: 0.5, size: 0.1, gravity: 0 });

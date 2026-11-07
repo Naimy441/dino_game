@@ -100,6 +100,21 @@ export class Particles {
         case 'dust':
           this.emit({ x, y: Math.random() * 5, z, n: 1, colors: [a.color], speed: 0.2, up: 0, gravity: 0, life: 3, size: 0.06, scroll: 0.9 });
           break;
+        case 'rain':
+          this.emit({ x: x + 4, y: 9 + Math.random() * 3, z, n: 1, colors: [a.color, '#c8d4f0'], speed: 0, up: -26, gravity: -10, life: 0.5, size: 0.07, scroll: 0.4, drag: 0, sizeEnd: 0.07 });
+          break;
+        case 'spores':
+          this.emit({ x, y: Math.random() * 5, z, n: 1, colors: [a.color, '#ff4fd8', '#ffe14d'], speed: 0.3, up: 0.6, gravity: 0, life: 3.5, size: 0.08, scroll: 0.8 });
+          break;
+        case 'wisps':
+          this.emit({ x, y: 0.5 + Math.random() * 4, z, n: 1, colors: [a.color, '#e0d0ff'], speed: 0.4, up: 0.4, gravity: 0.05, life: 3, size: 0.12, sizeEnd: 0.02, scroll: 0.5 });
+          break;
+        case 'petals':
+          this.emit({ x: x + 6, y: 5 + Math.random() * 3, z, n: 1, colors: [a.color, '#ffffff', '#ff8fb1'], speed: 0.7, up: -0.8, gravity: 0, life: 4.5, size: 0.1, scroll: 0.6 });
+          break;
+        case 'confetti':
+          this.emit({ x: x + 6, y: 6 + Math.random() * 3, z, n: 1, colors: ['#e53935', '#1e88e5', '#fdd835', '#43a047', '#ff4081'], speed: 0.5, up: -1.2, gravity: 0, life: 4, size: 0.09, scroll: 0.8 });
+          break;
         case 'warp':
           this.emit({ x: x + 30, y: -2 + Math.random() * 10, z: z - 10, n: 1, colors: ['#ffffff', '#9ad8ff'], speed: 0, up: 0, gravity: 0, life: 1.4, size: 0.12, scroll: 2.2, drag: 0 });
           break;

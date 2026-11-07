@@ -21,6 +21,7 @@ const FACES = [
 ];
 // Baked per-face shade so voxels read well even under flat light.
 const FACE_SHADE = [0.9, 0.9, 1.0, 0.62, 0.97, 0.8];
+const AO_LEVELS = [0.52, 0.68, 0.84, 1];
 
 const key = (x, y, z) => `${x},${y},${z}`;
 
@@ -141,7 +142,7 @@ export class VoxelSet {
   // Build a geometry. `size` is the edge of one voxel in world units; the
   // model is centred on x and z (unless anchor says otherwise) with its lowest
   // voxel at y = 0.
-  build(size = 0.1, { anchor = 'bottom', centerX = true } = {}) {
+  build(size = 0.1, { anchor = 'bottom', centerX = true, ao: aoOn = true } = {}) {
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, minZ = Infinity, maxZ = -Infinity;
     for (const v of this.map.values()) {
       if (v.x < minX) minX = v.x; if (v.x > maxX) maxX = v.x;
@@ -152,17 +153,42 @@ export class VoxelSet {
     const cz = (minZ + maxZ + 1) / 2;
     const cy = anchor === 'center' ? (minY + maxY + 1) / 2 : anchor === 'top' ? maxY + 1 : minY;
     const pos = [], nor = [], col = [];
+    const cell = [0, 0, 0];
+    const occ = (base, k, axis, o) => {
+      cell[0] = base[0]; cell[1] = base[1]; cell[2] = base[2];
+      cell[axis] += o;
+      if (k !== -1) cell[k[0]] += k[1];
+      return this.has(cell[0], cell[1], cell[2]) ? 1 : 0;
+    };
     for (const v of this.map.values()) {
       for (let f = 0; f < 6; f++) {
         const F = FACES[f];
         if (this.has(v.x + F.n[0], v.y + F.n[1], v.z + F.n[2])) continue;
         const s = FACE_SHADE[f];
-        const r = v.c.r * s, g = v.c.g * s, b = v.c.b * s;
         const corners = F.c.map(([a, b2, c]) => [(v.x + a - cx) * size, (v.y + b2 - cy) * size, (v.z + c - cz) * size]);
-        for (const idx of [0, 1, 2, 0, 2, 3]) {
+        // Ambient occlusion per corner: darken where neighbouring voxels
+        // crowd the face (the classic voxel look that makes shapes read).
+        const ao = [1, 1, 1, 1];
+        if (aoOn) {
+          const axisN = F.n[0] ? 0 : F.n[1] ? 1 : 2;
+          const [U, V] = [0, 1, 2].filter((a) => a !== axisN);
+          const base = [v.x + F.n[0], v.y + F.n[1], v.z + F.n[2]];
+          for (let i = 0; i < 4; i++) {
+            const c = F.c[i];
+            const ou = c[U] * 2 - 1, ov = c[V] * 2 - 1;
+            const s1 = occ(base, -1, U, ou), s2 = occ(base, -1, V, ov);
+            const cc = occ(base, [V, ov], U, ou);
+            const lvl = s1 && s2 ? 0 : 3 - (s1 + s2 + cc);
+            ao[i] = AO_LEVELS[lvl];
+          }
+        }
+        // flip the quad's diagonal so the gradient doesn't streak
+        const order = ao[0] + ao[2] < ao[1] + ao[3] ? [1, 2, 3, 1, 3, 0] : [0, 1, 2, 0, 2, 3];
+        for (const idx of order) {
           pos.push(...corners[idx]);
           nor.push(...F.n);
-          col.push(r, g, b);
+          const k = s * ao[idx];
+          col.push(v.c.r * k, v.c.g * k, v.c.b * k);
         }
       }
     }

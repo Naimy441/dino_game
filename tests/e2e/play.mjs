@@ -66,7 +66,7 @@ try {
     await shot(`05-cam-${mode}`);
   }
 
-  for (const [i, id] of ['volcano', 'moon', 'blocky', 'reef', 'cave', 'store', 'candy', 'tundra', 'neon', 'space'].entries()) {
+  for (const [i, id] of ['volcano', 'moon', 'blocky', 'reef', 'cave', 'store', 'candy', 'tundra', 'neon', 'space', 'city', 'alien', 'haunted', 'sky', 'dojo', 'toybox', 'lagoon'].entries()) {
     await page.evaluate((m) => { window.__dino.start(m); window.__dino.autopilot = true; }, i + 2);
     await page.waitForTimeout(2500);
     s = await st();

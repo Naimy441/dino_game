@@ -6,6 +6,9 @@ import { prop } from './models.js';
 // small things are drawn in the side view.
 //
 // ground/track: base colour, speck colours and a pattern for the pixel texture.
+// light (all optional): sunDir, shadow strength, rim (a back light that
+// outlines silhouettes), bloom, grade { sat, contrast, tint } and noir (black
+// and white except for gold).
 
 export const THEMES = {
   desert: {
@@ -25,6 +28,7 @@ export const THEMES = {
     ],
   },
   forest: {
+    light: { sunDir: [-0.5, 1, 0.55], shadow: 0.55, rim: ['#fff2c0', 0.5], grade: { sat: 1.1, contrast: 1.05, tint: '#fff8ec' } },
     sky: '#5fb8f5', horizon: '#c9ecff', fog: '#bde6fb', fogNear: 40, fogFar: 135,
     hemi: ['#e8f6ff', '#4a7a2a', 0.95], sun: ['#fff6d8', 0.75],
     ground: { base: '#5aa83c', specks: ['#3f8a2a', '#76c04f'], density: 0.12, pattern: 'specks' },
@@ -41,6 +45,7 @@ export const THEMES = {
     particles: { kind: 'leaves', color: '#7cc84f', rate: 6 },
   },
   volcano: {
+    light: { sunDir: [0.6, 0.7, 0.4], shadow: 0.5, rim: ['#ff5a1a', 1.1], bloom: 0.55, grade: { sat: 1.15, contrast: 1.12, tint: '#ffe2d0' } },
     sky: '#1a0606', horizon: '#9b2c14', fog: '#4a140c', fogNear: 30, fogFar: 120,
     hemi: ['#ff9a6a', '#2a0a05', 0.7], sun: ['#ff7a3a', 0.8],
     ground: { base: '#352626', specks: ['#1f1414', '#ff5a00'], density: 0.08, pattern: 'cracks', glow: '#ff6a00' },
@@ -56,6 +61,7 @@ export const THEMES = {
     particles: { kind: 'embers', color: '#ff8a1a', rate: 40 },
   },
   moon: {
+    light: { sunDir: [-0.8, 0.6, 0.4], shadow: 0.85, rim: ['#9fb4ff', 0.6], grade: { sat: 1, contrast: 1.15 } },
     sky: '#03030c', horizon: '#0b0b22', fog: '#06061a', fogNear: 60, fogFar: 170,
     hemi: ['#d6dcff', '#2a2a2a', 0.85], sun: ['#ffffff', 0.9],
     ground: { base: '#9a9a9a', specks: ['#7a7a7a', '#b8b8b8'], density: 0.1, pattern: 'craters' },
@@ -68,6 +74,7 @@ export const THEMES = {
     sky3d: [{ make: prop.earth, n: 1, fixed: true }, { make: () => prop.star('#ffffff'), n: 60, stars: true }],
   },
   blocky: {
+    light: { sunDir: [-0.4, 1, 0.5], shadow: 0.6, rim: ['#ffffff', 0.35], grade: { sat: 1.1, contrast: 1.05 } },
     sky: '#7ec0ee', horizon: '#b8dcf7', fog: '#a9d6f5', fogNear: 40, fogFar: 140,
     hemi: ['#ffffff', '#5a7a3a', 0.95], sun: ['#fffbe0', 0.7],
     ground: { base: '#62a83a', specks: ['#4f8a2b', '#78bf4a'], density: 0.18, pattern: 'blocks' },
@@ -79,11 +86,12 @@ export const THEMES = {
     sky3d: [{ make: prop.blockCloud, n: 7, drift: 1.2 }, { make: prop.blockSun, n: 1, fixed: true }],
   },
   reef: {
+    light: { sunDir: [0, 1, 0.2], shadow: 0.3, rim: ['#6fe8ff', 0.6], bloom: 0.25, grade: { sat: 1.1, contrast: 1, tint: '#e6fbff' } },
     sky: '#06304f', horizon: '#1b7fae', fog: '#0f5a86', fogNear: 18, fogFar: 85,
     hemi: ['#9fe8ff', '#1a3a4a', 0.9], sun: ['#bff4ff', 0.6],
     ground: { base: '#e3cf92', specks: ['#c9b26f', '#f2e2b0'], density: 0.12, pattern: 'ripples' },
     track: { base: '#d9c486', specks: ['#c2ab6a'], density: 0.1, pattern: 'ripples' },
-    ceiling: { y: 6.4, color: '#5fd0ff', opacity: 0.35 },
+    ceiling: { y: 6.4, color: '#5fd0ff', opacity: 0.55, water: true },
     props: [
       { make: prop.kelp, n: 26, z: [-25, -3], s: [1, 2] },
       { make: prop.kelp, n: 12, z: [6, 25], s: [1, 2], front: true },
@@ -95,6 +103,7 @@ export const THEMES = {
     wobble: 1,
   },
   cave: {
+    light: { shadow: 0, rim: ['#7cf5ff', 0.5], bloom: 0.6, grade: { sat: 1.15, contrast: 1.1 } },
     sky: '#040407', horizon: '#0a0a12', fog: '#06060c', fogNear: 10, fogFar: 48,
     hemi: ['#6a6a90', '#151520', 0.45], sun: ['#8a8ab0', 0.2],
     ground: { base: '#3b3540', specks: ['#29242c', '#4d4555'], density: 0.15, pattern: 'specks' },
@@ -112,6 +121,7 @@ export const THEMES = {
     particles: { kind: 'dust', color: '#9a8fb0', rate: 6 },
   },
   store: {
+    light: { sunDir: [0, 1, 0.15], shadow: 0.35, rim: ['#ffffff', 0.2], grade: { sat: 1.05, contrast: 1.02, tint: '#fffdf2' } },
     sky: '#f2f0e6', horizon: '#f2f0e6', fog: '#ece9dc', fogNear: 40, fogFar: 120,
     hemi: ['#ffffff', '#c9c6b8', 1.05], sun: ['#ffffff', 0.35],
     ground: { base: '#f4f4f4', specks: ['#d6d6d6'], density: 0, pattern: 'checker', alt: '#dedede' },
@@ -125,6 +135,7 @@ export const THEMES = {
     sky3d: [],
   },
   candy: {
+    light: { sunDir: [-0.4, 1, 0.6], shadow: 0.45, rim: ['#ffffff', 0.35], grade: { sat: 1.1, contrast: 1.04 } },
     sky: '#ffb3e0', horizon: '#fff0fa', fog: '#ffdcf0', fogNear: 40, fogFar: 140,
     hemi: ['#ffffff', '#ff9ecf', 1.0], sun: ['#fff5fb', 0.6],
     ground: { base: '#ff9ecf', specks: ['#ffffff', '#ff6fb5', '#7fe0ff', '#fff07a'], density: 0.08, pattern: 'specks' },
@@ -139,6 +150,7 @@ export const THEMES = {
     sky3d: [{ make: () => prop.cottonCloud('#ffffff'), n: 5, drift: 1.6 }, { make: () => prop.cottonCloud('#bfe9ff'), n: 4, drift: 1.2 }],
   },
   tundra: {
+    light: { sunDir: [-0.7, 0.8, 0.4], shadow: 0.5, rim: ['#cfe8ff', 0.3], grade: { sat: 1, contrast: 1.05, tint: '#f2f8ff' } },
     sky: '#9fd3ff', horizon: '#eaf6ff', fog: '#e2f2ff', fogNear: 35, fogFar: 130,
     hemi: ['#ffffff', '#a8c8e8', 1.0], sun: ['#ffffff', 0.6],
     ground: { base: '#ffffff', specks: ['#d6ecff', '#e8f4ff'], density: 0.1, pattern: 'specks' },
@@ -153,6 +165,7 @@ export const THEMES = {
     particles: { kind: 'snow', color: '#ffffff', rate: 60 },
   },
   neon: {
+    light: { sunDir: [0.3, 0.6, 0.6], shadow: 0.3, rim: ['#ff2bd6', 1.3], bloom: 0.8, grade: { sat: 1.2, contrast: 1.1 } },
     sky: '#0b0221', horizon: '#5a189a', fog: '#24073f', fogNear: 40, fogFar: 140,
     hemi: ['#ffb0ec', '#3a1670', 1.15], sun: ['#ffffff', 0.8],
     ground: { base: '#0d0221', specks: ['#ff2bd6'], density: 0, pattern: 'grid', line: '#ff2bd6', glow: true },
@@ -168,6 +181,7 @@ export const THEMES = {
     sky3d: [{ make: prop.stripeSun, n: 1, fixed: true, glow: true }, { make: () => prop.star('#ff9af0'), n: 40, stars: true }],
   },
   space: {
+    light: { sunDir: [0.5, 0.8, 0.5], shadow: 0.4, rim: ['#00e5ff', 0.9], bloom: 0.55, grade: { sat: 1.1, contrast: 1.1 } },
     sky: '#000006', horizon: '#0d0626', fog: '#04020e', fogNear: 60, fogFar: 170,
     hemi: ['#d0c4ff', '#2a2050', 1.05], sun: ['#ffffff', 0.8],
     ground: { base: '#14102a', specks: ['#2a2050', '#4a3a90'], density: 0.05, pattern: 'grid', line: '#6a4aff', glow: true },
@@ -184,5 +198,130 @@ export const THEMES = {
       { make: () => prop.star('#ffffff'), n: 90, stars: true },
     ],
     particles: { kind: 'warp', color: '#ffffff', rate: 50 },
+  },
+  city: {
+    sky: '#080a12', horizon: '#3a4258', fog: '#1c2130', fogNear: 26, fogFar: 115,
+    hemi: ['#b4c2e6', '#1a1d26', 1.0], sun: ['#dfe6ff', 0.7],
+    light: { sunDir: [0.4, 0.9, 0.5], shadow: 0.7, rim: ['#ffcf3f', 0.9], bloom: 0.45, noir: 1, grade: { sat: 1, contrast: 1.12 } },
+    ground: { base: '#22252d', specks: ['#2b2f38', '#1a1c22', '#3a3f4a'], density: 0.14, pattern: 'specks' },
+    track: { base: '#3e434e', specks: ['#4a505c', '#2e323a'], density: 0.08, pattern: 'stones', alt: '#464b57' },
+    dino: 'color',
+    props: [
+      { make: () => prop.noirBuilding(22, 1), n: 8, z: [-26, -14], s: [1, 1.3] },
+      { make: () => prop.noirBuilding(30, 2), n: 8, z: [-40, -28], s: [1, 1.4] },
+      { make: () => prop.noirBuilding(18, 3), n: 8, z: [14, 30], s: [1, 1.3], front: true },
+      { make: prop.streetLamp, n: 16, z: [-3.6, -3.6], s: [1, 1], spacing: 14 },
+      { make: prop.lampHead, n: 16, z: [-3.6, -3.6], y: [3.95, 3.95], s: [1, 1], spacing: 14, glow: true },
+      { make: prop.lampPool, n: 16, z: [-2.6, -2.6], y: [0.015, 0.015], s: [1, 1], spacing: 14, glow: true },
+      { make: prop.streetLamp, n: 16, z: [4.4, 4.4], s: [1, 1], spacing: 14, offset: 7, front: true },
+      { make: prop.lampHead, n: 16, z: [4.4, 4.4], y: [3.95, 3.95], s: [1, 1], spacing: 14, offset: 7, glow: true, front: true },
+    ],
+    sky3d: [{ make: () => prop.bigMoon(), n: 1, fixed: true }],
+    particles: { kind: 'rain', color: '#9aa8c8', rate: 120 },
+  },
+  alien: {
+    sky: '#0d0630', horizon: '#6a1f8a', fog: '#2a0f4a', fogNear: 30, fogFar: 125,
+    hemi: ['#b6fff0', '#3a0f5a', 0.85], sun: ['#ffd0ff', 0.7],
+    light: { sunDir: [-0.5, 0.7, 0.5], shadow: 0.55, rim: ['#3dffb0', 1.0], bloom: 0.6, grade: { sat: 1.2, contrast: 1.08 } },
+    ground: { base: '#3b1d6e', specks: ['#5a2d9a', '#3dffb0', '#2a1450'], density: 0.1, pattern: 'craters' },
+    track: { base: '#2a1450', specks: ['#3dffb0', '#7b2ff7'], density: 0.06, pattern: 'line', line: '#3dffb0', glow: false },
+    props: [
+      { make: () => prop.alienPlant('#3dffb0'), n: 18, z: [-16, -3], s: [1, 2], glow: true },
+      { make: () => prop.alienPlant('#ff4fd8'), n: 12, z: [-20, -4], s: [1, 2], glow: true },
+      { make: () => prop.alienPlant('#ffe14d'), n: 10, z: [5, 18], s: [1, 2], glow: true, front: true },
+      { make: prop.eyeStalk, n: 12, z: [-12, -3], s: [1, 1.8] },
+      { make: prop.alienSpire, n: 8, z: [-80, -45], s: [1, 1.6] },
+      { make: prop.alienSpire, n: 6, z: [40, 80], s: [1, 1.6], front: true },
+    ],
+    sky3d: [
+      { make: () => prop.planet('#3dffb0', '#ff4fd8'), n: 1, fixed: true },
+      { make: () => prop.planet('#ff7a3d', '#ffe14d'), n: 1, fixed: true, alt: true },
+      { make: () => prop.star('#ffd0ff'), n: 60, stars: true },
+    ],
+    particles: { kind: 'spores', color: '#3dffb0', rate: 14 },
+  },
+  haunted: {
+    sky: '#0c0816', horizon: '#5a3a78', fog: '#2a1d3a', fogNear: 24, fogFar: 100,
+    hemi: ['#c4b4f0', '#221a30', 1.05], sun: ['#e6deff', 0.75],
+    light: { sunDir: [0.6, 0.6, -0.3], shadow: 0.6, rim: ['#b18cff', 1.1], bloom: 0.5, grade: { sat: 0.85, contrast: 1.15, tint: '#e6e0ff' } },
+    ground: { base: '#2c3a26', specks: ['#1f2a1b', '#3a4a32'], density: 0.15, pattern: 'specks' },
+    track: { base: '#4e3f30', specks: ['#3a2f24', '#5e4d3b'], density: 0.15, pattern: 'specks' },
+    props: [
+      { make: prop.deadTree, n: 14, z: [-25, -5], s: [2, 3.5] },
+      { make: prop.deadTree, n: 8, z: [8, 28], s: [2, 3.5], front: true },
+      { make: prop.grave, n: 20, z: [-9, -3], s: [1.5, 2.5] },
+      { make: prop.fence, n: 14, z: [-2.4, -2.4], s: [1, 1], spacing: 2.3 },
+      { make: prop.jackLantern, n: 10, z: [-5, -2.8], s: [2, 3], glow: true },
+      { make: prop.grave, n: 10, z: [3, 9], s: [1.5, 2.5], front: true },
+    ],
+    sky3d: [{ make: () => prop.bigMoon(), n: 1, fixed: true }, { make: prop.mansion, n: 1, fixed: true, alt: true }, { make: () => prop.star('#cfc8ff'), n: 30, stars: true }],
+    particles: { kind: 'wisps', color: '#b9f5ff', rate: 8 },
+  },
+  sky: {
+    sky: '#3d9cf0', horizon: '#ffe9c4', fog: '#cfe6ff', fogNear: 45, fogFar: 160,
+    hemi: ['#ffffff', '#8fb8e0', 0.85], sun: ['#fff1cc', 0.75],
+    light: { sunDir: [-0.5, 1, 0.5], shadow: 0.6, rim: ['#fff2c0', 0.4], grade: { sat: 1.15, contrast: 1.08 } },
+    ground: { base: '#a6c9ee', specks: ['#c4dcfa', '#e6f1ff', '#8fb8e6'], density: 0.3, pattern: 'specks' },
+    track: { base: '#f5c94a', specks: ['#e0a92a', '#ffe08a'], density: 0.12, pattern: 'line', line: '#c98f1a' },
+    props: [
+      { make: () => prop.cottonCloud('#ffffff'), n: 18, z: [-34, -10], y: [-1.2, 0.2], s: [1, 2] },
+      { make: () => prop.cottonCloud('#eef6ff'), n: 10, z: [10, 30], y: [-1.2, 0.2], s: [1, 2], front: true },
+      { make: prop.pillar, n: 10, z: [-12, -6], s: [0.6, 1] },
+      { make: prop.island, n: 6, z: [-90, -45], y: [6, 22], s: [1, 2], swim: true },
+      { make: prop.island, n: 4, z: [40, 80], y: [6, 18], s: [1, 2], swim: true, front: true },
+    ],
+    sky3d: [{ make: () => prop.sun('#fff1a8'), n: 1, fixed: true }, { make: () => prop.cloud('#ffffff'), n: 8, drift: 2 }],
+  },
+  dojo: {
+    sky: '#ff9fbf', horizon: '#ffe8d6', fog: '#ffd9e2', fogNear: 35, fogFar: 130,
+    hemi: ['#fff0f4', '#5a6a3a', 0.95], sun: ['#ffd9b0', 0.8],
+    light: { sunDir: [0.8, 0.5, 0.4], shadow: 0.55, rim: ['#ff9fbf', 0.6], bloom: 0.15, grade: { sat: 1.1, contrast: 1.05, tint: '#fff2ec' } },
+    ground: { base: '#6f8f3c', specks: ['#5a7a2e', '#86a64e', '#ffaccb'], density: 0.1, pattern: 'specks' },
+    track: { base: '#c9b89a', specks: ['#b3a283', '#ddd0b5'], density: 0.1, pattern: 'stones', alt: '#bcab8c' },
+    props: [
+      { make: prop.bamboo, n: 30, z: [-14, -4], s: [1, 1.6] },
+      { make: prop.bamboo, n: 14, z: [5, 14], s: [1, 1.6], front: true },
+      { make: prop.cherry, n: 12, z: [-24, -8], s: [1.2, 2] },
+      { make: prop.cherry, n: 8, z: [8, 24], s: [1.2, 2], front: true },
+      { make: prop.torii, n: 3, z: [-40, -30], s: [1.5, 2] },
+      { make: () => prop.mountain('#a07ab8', '#ffffff'), n: 5, z: [-110, -80], s: [1, 1.5] },
+    ],
+    sky3d: [{ make: () => prop.sun('#fff1e0'), n: 1, fixed: true }, { make: () => prop.cloud('#ffe6ee'), n: 6, drift: 1.5 }],
+    particles: { kind: 'petals', color: '#ffaccb', rate: 18 },
+  },
+  toybox: {
+    sky: '#ffe7a8', horizon: '#fff6dc', fog: '#fff0cc', fogNear: 40, fogFar: 130,
+    hemi: ['#ffffff', '#c89060', 1.0], sun: ['#fff4e0', 0.7],
+    light: { sunDir: [-0.4, 1, 0.6], shadow: 0.6, rim: ['#ffffff', 0.4], grade: { sat: 1.15, contrast: 1.05 } },
+    ground: { base: '#3f6fd6', specks: ['#355fbf', '#4f7fe6'], density: 0.2, pattern: 'specks' },
+    track: { base: '#c8915a', specks: ['#b27d4a', '#d6a06a'], density: 0.06, pattern: 'planks', line: '#9a6a3a' },
+    props: [
+      { make: () => prop.toyTower(1), n: 8, z: [-20, -6], s: [1, 1.5] },
+      { make: () => prop.toyTower(2), n: 8, z: [-30, -8], s: [1, 1.5] },
+      { make: () => prop.toyTower(3), n: 6, z: [8, 24], s: [1, 1.5], front: true },
+      { make: () => prop.crayon('#e53935'), n: 8, z: [-6, -3], s: [1, 1.4] },
+      { make: () => prop.crayon('#43a047'), n: 8, z: [-6, -3], s: [1, 1.4] },
+      { make: () => prop.crayon('#fdd835'), n: 6, z: [3, 7], s: [1, 1.4], front: true },
+    ],
+    sky3d: [{ make: () => prop.sun('#ffffff'), n: 1, fixed: true }],
+    particles: { kind: 'confetti', color: '#ff4081', rate: 6 },
+  },
+  lagoon: {
+    sky: '#3fb4f0', horizon: '#e6f8ff', fog: '#c4ecff', fogNear: 45, fogFar: 150,
+    hemi: ['#ffffff', '#2a8ab0', 1.0], sun: ['#fff6d8', 0.8],
+    light: { sunDir: [-0.4, 1, 0.5], shadow: 0.4, rim: ['#fff2c0', 0.4], bloom: 0.15, grade: { sat: 1.15, contrast: 1.05 } },
+    ground: { base: '#1e9fd4', specks: ['#4fc3f7', '#bdeeff', '#1585b8'], density: 0.12, pattern: 'ripples' },
+    track: { base: '#2bb0e2', specks: ['#bdeeff', '#7fd6f5'], density: 0.12, pattern: 'ripples' },
+    water: true,
+    // the sandy bottom, seen through the water
+    ceiling: { y: -3.4, color: '#d9c486', opacity: 1 },
+    props: [
+      { make: prop.sandBar, n: 6, z: [-40, -16], y: [-0.2, -0.2], s: [1, 1.6] },
+      { make: prop.palm, n: 10, z: [-38, -16], s: [1.4, 2] },
+      { make: prop.sailboat, n: 4, z: [-80, -45], s: [1, 1.5], swim: true },
+      { make: prop.sandBar, n: 3, z: [16, 30], y: [-0.2, -0.2], s: [1, 1.6], front: true },
+      { make: prop.palm, n: 6, z: [16, 30], s: [1.4, 2], front: true },
+    ],
+    sky3d: [{ make: () => prop.sun('#fff1a8'), n: 1, fixed: true }, { make: () => prop.cloud('#ffffff'), n: 7, drift: 2 }],
   },
 };

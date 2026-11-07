@@ -502,3 +502,373 @@ export const SUN = [
   '.yyyyyy.',
   '..yyyy..',
 ];
+
+// ---------------------------------------------------------------- head-on views
+// Used in the chase and first-person cameras so things that come at you are
+// seen from the front, not edge-on.
+export const NEON_CAR_BACK = [
+  '.ppppp.',
+  'pcccccp',
+  'ppppppp',
+  'ypppppy',
+  'kk...kk',
+];
+export const SHARK_FRONT = [
+  '...g...',
+  '..ggg..',
+  '.ggggg.',
+  'gkgggkg',
+  'gwwwwwg',
+  '.wwwww.',
+];
+export const MINECART_FRONT = [
+  'bbbbbbb',
+  'bgggggb',
+  'bbbbbbb',
+  '.k...k.',
+];
+export const CART_FRONT = [
+  'kkkkkkk',
+  'k.k.k.k',
+  'kkkkkkk',
+  '.k.k.k.',
+  '.kkkkk.',
+  '.k...k.',
+  '.d...d.',
+];
+export const PLANE_FRONT = [
+  '......r......',
+  'bbbbbbrbbbbbb',
+  '.....rwr.....',
+  '......r......',
+];
+
+// ---------------------------------------------------------------- shadow city
+export const GOON = [
+  '...hhhh...',
+  '...hhhh...',
+  '.hhhhhhhh.',
+  '...dddd...',
+  '...edde...',
+  '...dddd...',
+  '..kkkkkk..',
+  '.kkkdkkkk.',
+  'kkkkdkkkkk',
+  'kk.kdkk.kk',
+  'kk.kdkk.kk',
+  'kk.kkkk.kk',
+  'dd.kkkk.dd',
+  '...kkkk...',
+  '...kkkk...',
+  '...k..k...',
+  '...k..k...',
+  '...k..k...',
+  '..hh..hh..',
+];
+export const BRUISER = [
+  '...hhhh...',
+  '...hhhh...',
+  '.hhhhhhhh.',
+  '...dddd...',
+  '...edde...',
+  '...dddd...',
+  '.kkkkkkkk.',
+  'kkkkggkkkk',
+  'kkkkkgkkkk',
+  'kkkkkkkkkk',
+  'kk.kkkk.kk',
+  'kk.kkkk.kk',
+  'kk.kkkk.kk',
+  'dd.kkkk.dd',
+  'dd.kkkk.dd',
+  '...kkkk...',
+  '...kkkk...',
+  '...k..k...',
+  '...k..k...',
+  '...k..k...',
+  '..hh..hh..',
+  '..hh..hh..',
+];
+export const HYDRANT = ['..gg..', '.rrrr.', '.rrrr.', 'rrrrrr', '.rrrr.', '.rrrr.', '.rrrr.', 'rrrrrr'];
+export const TRASH_CAN = [
+  '...dd...',
+  '.mmmmmm.',
+  'mmmmmmmm',
+  '.mdmdmd.',
+  '.mdmdmd.',
+  '.mdmdmd.',
+  '.mdmdmd.',
+  '.mdmdmd.',
+  '.mdmdmd.',
+  '.mmmmmm.',
+];
+export const HANG_SIGN = [
+  '.c.......c.',
+  '.c.......c.',
+  'bbbbbbbbbbb',
+  'bgbgbgggbgb',
+  'bgbgbgbbbgb',
+  'bgggbgggbgb',
+  'bgbgbgbbbbb',
+  'bgbgbgggbgb',
+  'bbbbbbbbbbb',
+];
+export const STREET_LAMP = [
+  'ggggg',
+  '.lll.',
+  '..p..',
+  '..p..',
+  '..p..',
+  '..p..',
+  '..p..',
+  '..p..',
+  '..p..',
+  '..p..',
+  '..p..',
+  '.ppp.',
+];
+
+// ---------------------------------------------------------------- planet zorb
+export const POD = ['..pppp..', '.ppgppp.', 'pppppppp', 'ppppppgp', 'pgpppppp', 'pppppppp', '.pppppp.', '..pppp..'];
+export const TENTACLE = [
+  '..tt..',
+  '.ttt..',
+  '.tt...',
+  'ttt...',
+  'tts...',
+  '.ttt..',
+  '..ttt.',
+  '..stt.',
+  '...ttt',
+  '..tts.',
+  '..ttt.',
+  '.ttt..',
+  '.stt..',
+  '.tttt.',
+  '..ttt.',
+  '..stt.',
+  '.tttt.',
+  '.ttts.',
+  'tttttt',
+  'tttttt',
+];
+export const BLOB = ['...bbbb...', '..bbbbbb..', '.bwkbbwkb.', '.bbbbbbbb.', 'bbbbbbbbbb', 'bbbbbbbbbb', '.b.bb.bb.b'];
+export const EYE_DRONE = [
+  '...mmm...',
+  '.mmmmmmm.',
+  'mmwwwwwmm',
+  'mwwiiiwwm',
+  'mwwikiwwm',
+  'mwwiiiwwm',
+  'mmwwwwwmm',
+  '.mmmmmmm.',
+];
+export const ALIEN_PLANT = [
+  '.g...g.',
+  'ggg.ggg',
+  '.g...g.',
+  '.s...s.',
+  '..s.s..',
+  '...s...',
+  '...s...',
+  '..sss..',
+];
+export const EYE_STALK = ['.www.', 'wwkww', '.www.', '..s..', '..s..', '.s...', '.s...', '..s..', '..s..', '.sss.'];
+export const ALIEN_SPIRE = ['..p..', '..p..', '.ppp.', '.pgp.', '.ppp.', 'ppppp', 'ppgpp', 'ppppp', 'ppppp'];
+
+// ---------------------------------------------------------------- haunted hollow
+export const TOMBSTONE = [
+  '..ssss..',
+  '.ssssss.',
+  'ssssssss',
+  'sssdssss',
+  'ssdddsss',
+  'sssdssss',
+  'sssdssss',
+  'ssssssss',
+  'ssssssss',
+  'msssssms',
+  'mmmmmmmm',
+];
+export const PUMPKIN = ['...gg...', '.oooooo.', 'oyooooyo', 'oyyooyyo', 'oooooooo', 'oyyyyyyo', '.oyoyoo.'];
+export const HAND = [
+  'h.h.h..',
+  'h.h.h..',
+  'hhhhh.h',
+  'hhhhhhh',
+  '.hhhhh.',
+  '..hhh..',
+  '..hhh..',
+  '..hhh..',
+  '..hhh..',
+  '.ddddd.',
+  'ddddddd',
+];
+export const GHOST = [
+  '...wwww...',
+  '..wwwwww..',
+  '.wwwwwwww.',
+  '.wkkwwkkw.',
+  '.wkkwwkkw.',
+  'wwwwwwwwww',
+  'wwwwkkwwww',
+  'wwwwkkwwww',
+  'wwwwwwwwww',
+  'wwwwwwwwww',
+  'wwwwwwwwww',
+  'wwwwwwwwww',
+  'w.ww.ww.ww',
+  '..w...w..w',
+];
+export const FENCE = ['b..b..b..b', 'bbbbbbbbbb', 'b..b..b..b', 'b..b..b..b', 'bbbbbbbbbb', 'b..b..b..b'];
+export const MANSION = [
+  '.....b..........b.....',
+  '....bbb........bbb....',
+  '....bbb..bbbb..bbb....',
+  '...bbbbbbbbbbbbbbbb...',
+  '...bybbybbbbbbybbyb...',
+  '...bbbbbbbbbbbbbbbb...',
+  '.bbbbbbbbbbbbbbbbbbbb.',
+  '.bybbybbybbbbybbybbyb.',
+  '.bbbbbbbbbbbbbbbbbbbb.',
+  'bbbbbbbbbbbyybbbbbbbbb',
+  'bybbybbbbbbyybbbbybbyb',
+  'bbbbbbbbbbbyybbbbbbbbb',
+];
+export const MOON_FACE = [
+  '...wwww...',
+  '.wwwwwwww.',
+  '.wwwwwgww.',
+  'wwgwwwwwww',
+  'wwwwwwwwww',
+  'wwwwwwgwww',
+  'wwwgwwwwww',
+  '.wwwwwwww.',
+  '.wwwwwgww.',
+  '...wwww...',
+];
+
+// ---------------------------------------------------------------- sky kingdom
+export const COLUMN = [
+  'mmmmmmmm',
+  '.dddddd.',
+  '.mdmdmd.',
+  '.mdmdmd.',
+  '.mdmdmd.',
+  '.mdmdmd.',
+  '.mdmdmd.',
+  '.mdmdmd.',
+  '.mdmdmd.',
+  '.mdmdmd.',
+  '.mdmdmd.',
+  '.dddddd.',
+  'mmmmmmmm',
+];
+export const BALLOON = ['..rrr..', '.rrrrr.', 'rrwrrrr', 'rwrrrrr', 'rrrrrrr', 'rrrrrrr', '.rrrrr.', '..rrr..', '...r...', '...g...', '...g...'];
+export const ISLAND = [
+  '..gggggggggg..',
+  '.gggggggggggg.',
+  'dddddddddddddd',
+  '.dddddddddddd.',
+  '..dddddddddd..',
+  '...dddddddd...',
+  '....dddddd....',
+  '.....dddd.....',
+  '......dd......',
+];
+
+// ---------------------------------------------------------------- bamboo dojo
+export const BAMBOO_SPIKES = ['.t..t..t.', '.g..g.tg.', '.l.tg.gl.', '.g.gl.gg.', 'tglgg.ggt', 'gggggtggg', 'ggggggggg'];
+export const STONE_LANTERN = [
+  '...s...',
+  '.sssss.',
+  'sssssss',
+  '.ddddd.',
+  '.dyyyd.',
+  '.dyyyd.',
+  '.ddddd.',
+  'sssssss',
+  '..sss..',
+  '..sss..',
+  '..sss..',
+  '..sss..',
+  '.sssss.',
+  'sssssss',
+];
+export const SHURIKEN = ['...m...', '...m...', '..mdm..', 'mmdddmm', '..mdm..', '...m...', '...m...'];
+export const BAMBOO = ['l', 'g', 'g', 'g', 'k', 'g', 'g', 'g', 'k', 'g', 'g', 'g', 'k', 'g', 'g', 'g', 'k', 'g', 'g', 'g'];
+export const CHERRY = [
+  '..pppp....',
+  '.pppwppp..',
+  'pppppppppp',
+  'ppwppppwpp',
+  '.pppppppp.',
+  '..pp.bpp..',
+  '.....b....',
+  '....b.....',
+  '....b.....',
+  '...bb.....',
+];
+export const TORII = [
+  'rrrrrrrrrrrrr',
+  '.rrrrrrrrrrr.',
+  '...r.....r...',
+  '.rrrrrrrrrrr.',
+  '...r.....r...',
+  '...r.....r...',
+  '...r.....r...',
+  '...r.....r...',
+  '...r.....r...',
+  '..kk.....kk..',
+];
+
+// ---------------------------------------------------------------- toy box
+export const SOLDIER = [
+  '.kkkk.',
+  '.kkkk.',
+  '.kkkk.',
+  '.ssss.',
+  '.ssss.',
+  'rrrrrr',
+  'rryyrr',
+  'r.rr.r',
+  'r.yr.r',
+  'r.rr.r',
+  '..bb..',
+  '.b..b.',
+  '.b..b.',
+  '.b..b.',
+  'kk..kk',
+];
+export const MARBLE = ['.ccc.', 'cwccc', 'ccccd', 'cccdd', '.cdd.'];
+export const TOY_PLANE = ['...........r.', '..........rr.', '.rrrrrrrrrrr.', 'brrwwrrrrrrrr', '.rrrrrrrrrrr.', '....bbbbb....'];
+export const CRAYON = ['.c.', 'ccc', 'ccc', 'www', 'ccc', 'ccc', 'ccc', 'ccc', 'www', 'ccc'];
+
+// ---------------------------------------------------------------- gear
+export const GUN = ['kkkkkkkkg', 'kkkkkkkkk', 'kgk......', 'kk.......', 'kk.......'];
+export const KATANA = ['s', 's', 's', 's', 's', 's', 's', 's', 's', 'g', 'h', 'h', 'h'];
+
+// ---------------------------------------------------------------- splash lagoon
+export const FIN = [
+  '.....g..',
+  '....gg..',
+  '...ggg..',
+  '..gggg..',
+  '.ggggg..',
+  'gggggggg',
+  '.bbbbbbb',
+  '..bbbbb.',
+  '...bbb..',
+];
+export const PALM = [
+  'gg..g..gg',
+  '.ggggggg.',
+  'gg.gtg.gg',
+  '....t....',
+  '....t....',
+  '...t.....',
+  '...t.....',
+  '...t.....',
+  '..ttt....',
+];
+export const SAILBOAT = ['...w....', '...ww...', '...www..', '...wwww.', '...m....', 'bbbbbbbb', '.bbbbbb.'];

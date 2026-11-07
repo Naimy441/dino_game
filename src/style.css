@@ -80,6 +80,9 @@ kbd {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.hint.urgent { animation: urgent 0.24s steps(2) infinite; color: var(--accent); }
+@keyframes urgent { 50% { transform: translateX(-50%) scale(1.12); } }
+.shuffle { font-size: 9px; opacity: 0.85; }
 .meter {
   position: absolute;
   left: 50%;

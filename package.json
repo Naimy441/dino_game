@@ -1,7 +1,7 @@
 {
   "name": "dino-dash",
   "version": "1.0.0",
-  "description": "Dino Dash: a chunky-pixel endless runner in 3D, with side, chase and first-person views and twelve worlds.",
+  "description": "Dino Dash: a chunky-pixel endless runner in 3D, with side, chase and first-person views and nineteen worlds.",
   "private": true,
   "type": "module",
   "license": "MIT",

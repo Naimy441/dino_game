@@ -8,6 +8,14 @@
 //   vx: extra speed toward the dino; drop: falls when the dino gets close;
 //   bob: floats up and down; ceil: hangs from the ceiling (gravity flip map)
 //   group: max copies placed side by side
+//   wall: too tall to jump and nothing to duck under: the world's ability
+//         (fire, pickaxe, gun, phase, dash) is the only way through
+//   shootable + hp: gold bullets take it down; field: phase through it;
+//   dashable: a dash cuts through it; ghost: only solid while visible;
+//   pit: a hole in the path (fall in and it's over); wSpeed: pit width as a
+//   multiple of the current speed; popup: pokes out of the ground as you near
+
+import { px } from './classic.js';
 
 export const COLOR_SCORE = 200; // the classic desert explodes into colour here
 export const MAP_LENGTH = 350; // points per world after that
@@ -16,13 +24,18 @@ const BAT_Y = [0.25, 1.35, 1.35, 2.7];
 
 export const MAPS = [
   {
-    id: 'desert', name: 'CLASSIC DESERT', gimmick: null, hint: 'SPACE JUMP   DOWN DUCK',
+    // The original runner, rule for rule: types picked evenly (never three
+    // in a row), groups of up to three once fast enough, gaps from the
+    // original formula. pxW is the original sprite width the gap is based
+    // on; pterodactyls (bats here) only appear from speed 8.5 and fly at the
+    // original three heights (ground, duck-under, run-under).
+    id: 'desert', name: 'CLASSIC DESERT', gimmick: null, hint: 'SPACE JUMP   DOWN DUCK', classic: true,
     ground: [
-      { type: 'cactusSmall', w: 0.62, h: 0.95, weight: 3, group: 3 },
-      { type: 'cactusTall', w: 0.85, h: 1.55, weight: 2, group: 2 },
+      { type: 'cactusSmall', w: 0.62, h: 0.95, pxW: 17, group: 3, multipleSpeed: 4, minGap: 120 },
+      { type: 'cactusTall', w: 0.85, h: 1.55, pxW: 25, group: 3, multipleSpeed: 7, minGap: 120 },
     ],
-    air: [{ type: 'bat', w: 1.4, h: 0.62, y: BAT_Y, weight: 1, minScore: 60 }],
-    airChance: 0.22,
+    air: [{ type: 'bat', w: 1.4, h: 0.62, pxW: 46, y: [0, px(25) + 0.15, px(50)], minSpeed: 8.5, minGap: 150, speedOffset: 0.8 }],
+    airChance: 0,
   },
   {
     id: 'forest', name: 'PIXEL FOREST', gimmick: 'doubleJump', hint: 'DOUBLE JUMP! TAP JUMP AGAIN IN THE AIR',
@@ -35,8 +48,9 @@ export const MAPS = [
     airChance: 0.25,
   },
   {
-    id: 'volcano', name: 'MOUNT MAGMA', gimmick: 'fire', hint: 'X / F  BREATHE FIRE',
+    id: 'volcano', name: 'MOUNT MAGMA', gimmick: 'fire', hint: 'X / F  BREATHE FIRE. BURN THE THORN WALLS!',
     ground: [
+      { type: 'thornWall', w: 0.9, h: 5.6, weight: 1.3, tags: ['burnable', 'wall'] },
       { type: 'lavaRock', w: 1.0, h: 0.75, weight: 3, group: 2, tags: ['burnable'] },
       { type: 'obsidian', w: 0.7, h: 1.6, weight: 2, group: 2, tags: ['burnable'] },
     ],
@@ -54,8 +68,9 @@ export const MAPS = [
     airChance: 0.35,
   },
   {
-    id: 'blocky', name: 'BLOCK WORLD', gimmick: 'pickaxe', hint: 'X / F  SWING THE DIAMOND PICKAXE',
+    id: 'blocky', name: 'BLOCK WORLD', gimmick: 'pickaxe', hint: 'X / F  PICKAXE. MINE THROUGH STONE WALLS!',
     ground: [
+      { type: 'stoneWall', w: 0.9, h: 5.4, weight: 1.4, tags: ['mob', 'wall'] },
       { type: 'zombie', w: 0.75, h: 1.9, weight: 4, vx: 2.5, tags: ['mob'] },
       { type: 'dirtBlock', w: 0.9, h: 0.9, weight: 2, group: 2, tags: ['mob'] },
       { type: 'dirtTower', w: 0.9, h: 1.8, weight: 1, tags: ['mob'] },
@@ -142,6 +157,89 @@ export const MAPS = [
     ],
     air: [],
     airChance: 0,
+  },
+  {
+    id: 'city', name: 'SHADOW CITY', gimmick: 'gun', hint: 'X / F  FIRE GOLD BULLETS. BIG GOONS TAKE 3',
+    speedMul: 0.95,
+    ground: [
+      { type: 'goon', w: 0.8, h: 2.0, weight: 3, vx: 2, tags: ['shootable'], hp: 1 },
+      { type: 'bruiser', w: 1.2, h: 4.6, weight: 1.5, tags: ['shootable', 'wall'], hp: 3 },
+      { type: 'hydrant', w: 0.6, h: 0.8, weight: 2, group: 2 },
+      { type: 'trashCan', w: 0.8, h: 1.0, weight: 2 },
+    ],
+    air: [
+      { type: 'hangSign', w: 1.3, h: 0.9, y: [1.35], weight: 1 },
+      { type: 'crow', w: 1.0, h: 0.6, y: BAT_Y, weight: 1, tags: ['shootable'], hp: 1 },
+    ],
+    airChance: 0.25,
+  },
+  {
+    id: 'alien', name: 'PLANET ZORB', gimmick: 'phase', hint: 'X / F  PHASE THROUGH FORCE FIELDS',
+    ground: [
+      { type: 'pod', w: 0.9, h: 0.85, weight: 3, group: 2 },
+      { type: 'tentacle', w: 0.6, h: 2.0, weight: 2, popup: true },
+      { type: 'field', w: 0.5, h: 6, weight: 1.4, tags: ['field', 'wall'] },
+      { type: 'blob', w: 1.0, h: 0.7, weight: 1.5, vx: 3 },
+    ],
+    air: [{ type: 'eyeDrone', w: 0.9, h: 0.8, y: BAT_Y, weight: 1, bob: 0.18 }],
+    airChance: 0.25,
+  },
+  {
+    id: 'haunted', name: 'HAUNTED HOLLOW', gimmick: 'ghosts', hint: 'GHOSTS ARE ONLY SOLID WHILE YOU CAN SEE THEM',
+    speedMul: 0.95,
+    ground: [
+      { type: 'tombstone', w: 0.8, h: 1.1, weight: 3, group: 2 },
+      { type: 'pumpkin', w: 0.8, h: 0.7, weight: 2, group: 3 },
+      { type: 'hand', w: 0.6, h: 1.1, weight: 1.5, popup: true },
+    ],
+    air: [
+      { type: 'ghost', w: 0.9, h: 1.4, y: [0, 1.35, 1.35], weight: 3, tags: ['ghost'], bob: 0.15 },
+      { type: 'hauntBat', w: 1.4, h: 0.62, y: BAT_Y, weight: 1 },
+    ],
+    airChance: 0.4,
+  },
+  {
+    id: 'sky', name: 'SKY KINGDOM', gimmick: 'glide', hint: 'MIND THE GAPS! HOLD JUMP TO GLIDE',
+    ground: [
+      { type: 'column', w: 0.8, h: 1.3, weight: 2 },
+      { type: 'gap', w: 3, h: 0.02, weight: 2.2, tags: ['pit'], wSpeed: [0.3, 0.48] },
+      { type: 'chasm', w: 8, h: 0.02, weight: 1.3, tags: ['pit'], wSpeed: [0.85, 1.1] },
+    ],
+    air: [
+      { type: 'balloon', w: 0.8, h: 1.1, y: [1.35, 2.6], weight: 1, bob: 0.3 },
+      { type: 'eagle', w: 1.2, h: 0.6, y: BAT_Y, weight: 1 },
+    ],
+    airChance: 0.25,
+  },
+  {
+    id: 'dojo', name: 'BAMBOO DOJO', gimmick: 'dash', hint: 'X / F  DASH THROUGH PAPER WALLS AND STARS',
+    ground: [
+      { type: 'bambooSpikes', w: 0.9, h: 0.7, weight: 3, group: 3 },
+      { type: 'stoneLantern', w: 0.7, h: 1.4, weight: 2 },
+      { type: 'shoji', w: 0.6, h: 5.2, weight: 1.4, tags: ['dashable', 'wall'] },
+    ],
+    air: [{ type: 'shuriken', w: 0.6, h: 0.6, y: BAT_Y, weight: 1, vx: 8, tags: ['dashable'] }],
+    airChance: 0.25,
+  },
+  {
+    id: 'toybox', name: 'TOY BOX', gimmick: 'pogo', hint: 'POGO! HOLD JUMP = BIG BOUNCE, DOWN = SMALL',
+    ground: [
+      { type: 'abcBlock', w: 0.9, h: 0.9, weight: 3, group: 2 },
+      { type: 'soldier', w: 0.6, h: 1.5, weight: 2, vx: 2 },
+      { type: 'marble', w: 0.5, h: 0.5, weight: 1.5, vx: 7 },
+    ],
+    air: [{ type: 'toyPlane', w: 1.3, h: 0.6, y: [2.7, 3.4], weight: 1.2 }],
+    airChance: 0.25,
+  },
+  {
+    id: 'lagoon', name: 'SPLASH LAGOON', gimmick: 'paddle', hint: 'SWIMMING! JUMP TO LEAP OUT, DOWN TO DIVE UNDER',
+    ground: [
+      { type: 'floatLog', w: 1.6, h: 0.9, y0: -0.35, weight: 3 },
+      { type: 'buoy', w: 0.7, h: 4.2, y0: -2.8, weight: 2 },
+      { type: 'finShark', w: 1.2, h: 0.9, y0: -0.3, weight: 2, vx: 4 },
+    ],
+    air: [{ type: 'gull', w: 1.0, h: 0.6, y: [1.0, 1.5], weight: 1 }],
+    airChance: 0.3,
   },
 ];
 
