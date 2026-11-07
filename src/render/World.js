@@ -355,6 +355,7 @@ export class World {
         mat.transparent = true;
         mat.opacity = mat === this.track.material ? 0.55 : 0.72;
         mat.depthWrite = false;
+        mat.side = THREE.DoubleSide; // the surface, seen from below when diving
       }
     }
     this.waterTex = T.water ? b.groundTex : null;

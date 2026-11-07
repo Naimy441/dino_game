@@ -97,6 +97,8 @@ function boot() {
   let fps = 60;
   let autopilot = params.has('bot');
   let faceAmt = settings.camera === 'side' ? 0 : 1;
+  let underwater = false;
+  const UNDERWATER = new THREE.Color('#0b5d86');
   const tmp = new THREE.Vector3();
 
   // ------------------------------------------------------------ setup
@@ -803,6 +805,19 @@ function boot() {
     post.uniforms.uTime.value = now / 1000;
 
     if (state === 'play' || state === 'dead') updateHud();
+    // under the lagoon's surface: blue haze, a wobble, the surface overhead
+    const under = game.map.gimmick === 'paddle' && camera.position.y < -0.05;
+    if (under !== underwater) {
+      underwater = under;
+      if (under) {
+        scene.fog.color.set('#0e6f9c');
+        scene.fog.near = 1;
+        scene.fog.far = 24;
+        scene.background = UNDERWATER;
+        post.uniforms.uWobble.value = 1.2;
+        post.uniforms.uTint.value.set('#9fdcff');
+      } else applyTheme(true);
+    }
     post.render(scene, camera);
   }
 

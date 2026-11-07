@@ -10,7 +10,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "node --test tests/*.test.js",
-    "test:e2e": "node tests/e2e/play.mjs"
+    "test:e2e": "node tests/e2e/play.mjs",
+    "export:music": "node tools/export-music.mjs"
   },
   "dependencies": {
     "@fontsource/press-start-2p": "^5.3.0",
