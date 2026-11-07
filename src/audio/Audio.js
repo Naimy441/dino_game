@@ -266,7 +266,7 @@ export class Audio {
   }
 
   // ------------------------------------------------------------ effects
-  sfx(name) {
+  sfx(name, arg) {
     if (!this.ctx || this.muted) return;
     const now = this.ctx.currentTime;
     switch (name) {
@@ -281,11 +281,11 @@ export class Audio {
         this.tone(1568, 0.16, { vol: 0.12, at: now + 0.1 });
         break;
       case 'die':
-        this.tone(220, 0.35, { type: 'sawtooth', slide: 0.3, vol: 0.18 });
-        this.hiss(0.3, { freq: 400, vol: 0.2 });
-        // the little "game over" sting
-        this.jingle([71, 67, 64, 63, null, 62, 59], 0.11, { at: now + 0.38, vol: 0.1, wave: 'p25' });
-        this.voice(43, now + 0.38, 0.75, { wave: 'tri', vol: 0.3 });
+        // the hit, right away
+        this.tone(330, 0.16, { type: 'p25', slide: 0.45, vol: 0.12 });
+        this.hiss(0.12, { freq: 600, vol: 0.09 });
+        // in the colour worlds, a short "game over" sting straight after
+        if (arg !== 'classic') this.jingle([71, 67, 64, 59], 0.08, { at: now + 0.12, vol: 0.06, wave: 'p25' });
         break;
       case 'fire': this.hiss(0.45, { freq: 900, vol: 0.28, slide: 0.4, q: 0.5 }); this.tone(90, 0.4, { type: 'sawtooth', vol: 0.08 }); break;
       case 'swing': this.hiss(0.08, { freq: 4000, vol: 0.1, slide: 0.5 }); break;

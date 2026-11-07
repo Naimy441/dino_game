@@ -51,6 +51,30 @@ test('the run starts grey and explodes into colour at 200', () => {
   assert.equal(g.map.id, 'forest');
 });
 
+test('a new world blasts away every obstacle still ahead', () => {
+  const g = new Game({ seed: 30, startMap: idx('forest') });
+  quiet(g);
+  place(g, 'stump', 6);
+  place(g, 'stump', 18);
+  g.score = mapStartScore(idx('volcano')) - 0.01;
+  g.update(STEP);
+  assert.equal(g.map.id, 'volcano');
+  assert.equal(g.obstacles.filter((o) => o.x > 1.2).length, 0);
+});
+
+test('forest: a double jump clears a log stack', () => {
+  const g = new Game({ seed: 31, startMap: idx('forest') });
+  quiet(g);
+  g.pressJump();
+  g.setJump(true);
+  let top = 0;
+  run(g, 1.6, (gg, t) => {
+    if (Math.abs(t - 0.3) < STEP / 2) gg.pressJump();
+    top = Math.max(top, gg.dino.y);
+  });
+  assert.ok(top > 3.1 + 1.5, `double jump peak ${top}`);
+});
+
 test('jump: a tap clears a small cactus, holding goes higher', () => {
   const peak = (hold) => {
     const g = new Game({ seed: 2 });

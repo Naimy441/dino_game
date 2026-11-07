@@ -72,7 +72,7 @@ export class Game {
     this.dino = {
       y: 0, vy: 0, grounded: true, ducking: false, airJumps: this.map.gimmick === 'doubleJump' ? 1 : 0,
       grav: 1, lane: 1, z: 0, giant: 0, fireT: 0, fireCd: 0, swingT: 0, swingCd: 0,
-      airTime: 0, sinceGround: 0, jumpBuf: 0, spin: 0, flips: 0,
+      airTime: 0, sinceGround: 0, jumpBuf: 0, spin: 0, flips: 0, jumpBase: 0,
       actT: 0, actCd: 0, actBuf: 0, gliding: false, overPit: false, inPit: false,
     };
     this.bullets = [];
@@ -216,6 +216,7 @@ export class Game {
     if (canGround && d.overPit && d.y < -0.3) return; // too late, already falling
     if (canGround) {
       d.vy = v * d.grav;
+      d.jumpBase = d.y;
       d.grounded = false;
       d.sinceGround = 1;
       d.jumpBuf = 0;
@@ -224,6 +225,7 @@ export class Game {
     } else if (d.airJumps > 0 && d.jumpBuf === PHYS.jumpBuffer) {
       d.airJumps--;
       d.vy = v * 0.92 * d.grav;
+      d.jumpBase = d.y; // the air jump gets its own full rise
       d.jumpBuf = 0;
       this.events.push({ type: 'doubleJump' });
     }
@@ -401,7 +403,8 @@ export class Game {
     this.mapTime = 0;
     // The colour explosion blasts away everything ahead; later worlds only
     // drop what hasn't come into view yet.
-    const cut = first ? 1.2 : 24;
+    // the change of world blasts away everything still ahead of the dino
+    const cut = 1.2;
     const removed = this.obstacles.filter((o) => o.x > cut);
     this.obstacles = this.obstacles.filter((o) => o.x <= cut);
     this.nextX = Math.max(this.nextX, first ? 46 : 36);
@@ -519,7 +522,9 @@ export class Game {
           // heights scale with the world's jump (the moon's are huge)
           const k = (m.jump || 1) ** 2 / (m.gravity || 1);
           const cap = perSec(CLASSIC.dropVelocity) * (m.jump || 1);
-          if ((d.y >= px(CLASSIC.minJumpHeight) * k && !this.input.jump) || d.y >= px(CLASSIC.maxJumpHeight) * k) d.vy = Math.min(d.vy, cap);
+          // (measured from where this jump started, so a double jump isn't cut short)
+          const h = d.y - d.jumpBase;
+          if ((h >= px(CLASSIC.minJumpHeight) * k && !this.input.jump) || h >= px(CLASSIC.maxJumpHeight) * k) d.vy = Math.min(d.vy, cap);
         }
         // down in the air: the speed drop, three times the fall
         if (!d.grounded && this.input.duck && !glide) {

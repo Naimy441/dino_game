@@ -476,7 +476,7 @@ function boot() {
           rig.shake(0.1);
           break;
         case 'die':
-          audio.sfx('die');
+          audio.sfx('die', game.colorful ? null : 'classic');
           rig.shake(0.45);
           flash = 0.35;
           post.uniforms.uFlashColor.value.set(game.colorful ? '#ff3b3b' : '#ffffff');
@@ -539,11 +539,24 @@ function boot() {
 
   // ------------------------------------------------------------ input
   const held = { jump: new Set(), duck: new Set() };
+  // A short guard after dying stops a held jump from restarting by accident,
+  // but a press during it isn't lost: the run restarts as soon as it ends.
+  const RESTART_GUARD = 220;
+  let restartTimer = null;
+  function requestRestart() {
+    if (state !== 'dead' || restartTimer) return;
+    const wait = RESTART_GUARD - (performance.now() - deadAt);
+    if (wait <= 0) return startRun();
+    restartTimer = setTimeout(() => {
+      restartTimer = null;
+      if (state === 'dead') startRun();
+    }, wait);
+  }
   function jumpDown(src) {
     audio.ensure();
     if (state === 'menu') return startRun();
     if (state === 'dead') {
-      if (performance.now() - deadAt > 450) startRun();
+      requestRestart();
       return;
     }
     if (state !== 'play') return;
@@ -572,6 +585,12 @@ function boot() {
     const k = e.code;
     if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(k)) e.preventDefault();
     if (e.repeat && !['ArrowLeft', 'ArrowRight'].includes(k)) return;
+    // after a crash, any key restarts (except the settings and menu keys)
+    if (state === 'dead' && !['KeyC', 'KeyV', 'KeyM', 'KeyP', 'Escape', 'Backquote', 'ShiftLeft', 'ShiftRight', 'MetaLeft', 'MetaRight', 'AltLeft', 'AltRight', 'ControlLeft', 'ControlRight', 'Tab'].includes(k)) {
+      audio.ensure();
+      requestRestart();
+      return;
+    }
     if (k === 'Space' || k === 'ArrowUp' || k === 'KeyW') jumpDown(k);
     else if (k === 'ArrowDown' || k === 'KeyS') duckDown(k);
     else if (k === 'KeyX' || k === 'KeyF' || k === 'KeyE' || k === 'ShiftLeft' || k === 'ShiftRight' || k === 'Enter') {
